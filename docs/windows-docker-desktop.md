@@ -32,35 +32,66 @@ unix://C:\Users\<user>\AppData\Local\Docker\run\dockerInference: remove
   on Windows is a Docker Desktop defect or limitation. Not verified whether a newer Docker
   Desktop release fixes it.
 
+## Update 2026-11-18 (second recurrence): same defect, more sockets
+
+The same session reproduced the crash **twice more**, which showed the problem is general:
+
+- Docker Desktop had exited without a clean shutdown (backend log ends mid-traffic, no shutdown
+  entry) and left sockets from 17:26 in **two** places: `%LOCALAPPDATA%\Docker\run`
+  (`dockerInference`, `userAnalyticsOtlpHttp.sock`) **and** `%LOCALAPPDATA%\docker-secrets-engine`
+  (`engine.sock`). A start with stale sockets failed on `dockerInference`; after renaming only `run`
+  it failed again on `docker-secrets-engine\engine.sock`.
+- `docker info` can **hang** (not fail) while Docker Desktop is half-dead, so scripts must put a
+  timeout on it.
+- A normal start does **not** always need repair: repair is only needed when the stale-socket
+  error appears. Renaming on every start is therefore not done.
+
 ## Fix applied (non-destructive, reversible)
 
-1. Confirmed no Docker process was running.
-2. Renamed `%LOCALAPPDATA%\Docker\run` to `run.stale-20261118` (nothing deleted).
-3. Started Docker Desktop; it recreated `run` and the engine came up.
+1. Confirmed no Docker engine was running (the crashed GUI/backend processes were closed).
+2. Renamed `%LOCALAPPDATA%\Docker\run` and `%LOCALAPPDATA%\docker-secrets-engine` (each held only
+   socket files) to `<name>.stale-<timestamp>`. Nothing was deleted.
+3. Started Docker Desktop; it recreated both folders and the engine came up
+   (`docker info` -> server 28.5.2, `docker compose version` -> v2.40.3).
 
 Not modified: volumes, images, containers, WSL distributions, Docker settings.
 
-To revert: quit Docker Desktop, delete/rename the freshly created `run` folder, rename
-`run.stale-20261118` back to `run`. (Reverting restores the crashing state; it is only useful
-for inspection.)
+To revert: quit Docker Desktop, rename the freshly created folder away, rename the `*.stale-*`
+folder back. (That restores the crashing state; only useful for inspection.)
 
-## Making it durable
+## The helper script
 
-[`scripts/windows/start-docker-desktop.ps1`](../scripts/windows/start-docker-desktop.ps1) does the
-same safe sequence on demand: if Docker is running it changes nothing; if it is not running and
-`run` is non-empty it renames `run` to `run.stale-<timestamp>`, then starts Docker Desktop and waits
-for `docker info`. It never deletes. Use `-WhatIf` to preview.
+[`scripts/windows/start-docker-desktop.ps1`](../scripts/windows/start-docker-desktop.ps1)
+
+| Situation | Default run (no switch) | With `-RepairStaleSockets` |
+|---|---|---|
+| Docker running and responding | does nothing, exit 0 | does nothing, exit 0 |
+| Docker not running | **normal start**, waits for `docker info`, exit 0; no renaming | renames the socket folders first, then starts |
+| Start fails with the stale-socket error | stops waiting, explains, changes nothing, **exit 2** | n/a (repair already done) |
+| Docker open but crashed on stale sockets | detects it, changes nothing, **exit 2** | refuses while Docker processes exist: quit the error dialog first |
+| Socket folder holds a non-socket file | n/a | leaves that folder untouched |
+
+Only the two known folders can ever be renamed, only when they contain nothing but socket files, and
+never deleted. `-WhatIf` previews.
 
 ```powershell
-.\scripts\windows\start-docker-desktop.ps1
+.\scripts\windows\start-docker-desktop.ps1                       # normal start
+.\scripts\windows\start-docker-desktop.ps1 -RepairStaleSockets   # after exit code 2 (Docker closed)
 ```
 
-Prevention: quit Docker Desktop from its tray menu before shutting down or killing processes;
-avoid force-killing `com.docker.backend`. Old `run.*` folders accumulate (a few bytes each);
-remove them manually if you want, they are safe to delete only while Docker is stopped.
+Verified on this machine: detector against real and fabricated error files; "already running"
+(exit 0); detection of the crashed state (exit 2, nothing changed, 9 s); repair of both folders
+followed by a successful engine start. Bugs found and fixed while testing it: `docker info` hanging,
+`ExitCode` being `$null` under Windows PowerShell 5.1 without touching `Process.Handle`, and stderr
+becoming a terminating error under `$ErrorActionPreference = 'Stop'`. Not exercised: a normal start
+of a *healthy* Docker from a cold state with no stale sockets.
+
+Prevention: quit Docker Desktop from its tray menu before shutting down; avoid force-killing
+`com.docker.backend`. Old `run.*` / `*.stale-*` folders are tiny; delete them manually only while
+Docker is stopped, if at all.
 
 ## Options NOT applied (need the owner's decision)
 
 - Disable Docker AI (`EnableDockerAI` -> false in Docker Desktop settings): would stop creating
-  `dockerInference`, but does not cover `userAnalyticsOtlpHttp.sock`, and changes a feature setting.
-- Update Docker Desktop: a download/installation; might fix the defect, unverified.
+  `dockerInference`, but not the other sockets, and changes a feature setting.
+- Update Docker Desktop (4.51.0): a download/installation; might fix the defect, unverified.

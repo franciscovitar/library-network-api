@@ -37,3 +37,7 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.ruff.lint.per-file-ignores]
 # FastAPI's `Depends(...)` default argument is the framework idiom.
 "app/main.py" = ["B008"]
+"app/db.py" = ["B008"]
+"app/api/routes.py" = ["B008"]
+# Long literal assertions read better unwrapped.
+"tests/**" = ["E501"]

@@ -1,17 +1,24 @@
-"""HTTP entrypoint. Business endpoints will be added incrementally."""
+"""HTTP entrypoint: system checks plus the /api/v1 interlibrary-lending routes."""
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.errors import register_error_handlers
+from app.api.routes import router
 from app.db import get_engine
 
 app = FastAPI(
     title="Library Network API",
-    description="Local demonstration of reliable interlibrary lending (under development).",
-    version="0.1.0",
+    description=(
+        "Local demonstration of reliable interlibrary lending. "
+        "Unauthenticated: local use only, never expose publicly."
+    ),
+    version="0.2.0",
 )
+register_error_handlers(app)
+app.include_router(router)
 
 
 @app.get("/health", tags=["system"])

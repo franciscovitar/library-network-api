@@ -15,10 +15,12 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL, Engine, make_url
 from sqlalchemy.orm import Session
@@ -53,14 +55,17 @@ def server_url() -> URL:
 
 @pytest.fixture(scope="session")
 def create_database(server_url: URL):
-    """Factory returning the URL of a new, empty, uniquely named database."""
+    """Factory returning the URL of a new, uniquely named database (optionally from a template)."""
     created: list[str] = []
     admin = create_engine(server_url, isolation_level="AUTOCOMMIT")
 
-    def _create() -> URL:
+    def _create(template: URL | None = None) -> URL:
         name = f"{DB_PREFIX}{uuid.uuid4().hex[:12]}"
+        clause = f' TEMPLATE "{template.database}"' if template is not None else ""
+        if template is not None:
+            assert template.database.startswith(DB_PREFIX)
         with admin.connect() as conn:
-            conn.execute(text(f'CREATE DATABASE "{name}"'))
+            conn.execute(text(f'CREATE DATABASE "{name}"{clause}'))
         created.append(name)
         return server_url.set(database=name)
 
@@ -116,3 +121,66 @@ def db(seeded_engine: Engine) -> Iterator[Session]:
         session.close()
         outer.rollback()
         connection.close()
+
+
+# --- API-level fixtures (lifecycle, idempotency, rollback, concurrency) ----------------------
+
+
+@pytest.fixture(scope="session")
+def template_url(create_database) -> URL:
+    """Migrated + seeded database used as a TEMPLATE: cloning it is much cheaper than
+    re-running Alembic for every test, and every clone starts from identical data."""
+    url = create_database()
+    command.upgrade(alembic_config(url), "head")
+    eng = create_engine(url)
+    with Session(eng) as session, session.begin():
+        assert seed_demo_data(session) is not None
+    eng.dispose()  # a template must have no open connections
+    return url
+
+
+@pytest.fixture
+def app_engine(create_database, template_url: URL) -> Iterator[Engine]:
+    """Engine on a private clone of the seeded database.
+
+    ``lock_timeout`` makes a lock wait that would otherwise hang (a deadlock) fail loudly.
+    """
+    url = create_database(template=template_url)
+    eng = create_engine(
+        url,
+        pool_size=10,
+        max_overflow=10,
+        connect_args={"options": "-c lock_timeout=10000 -c statement_timeout=30000"},
+    )
+    yield eng
+    eng.dispose()
+
+
+class FakeClock:
+    """Deterministic, controllable UTC clock (injected through the `get_clock` dependency)."""
+
+    def __init__(self) -> None:
+        self.now = datetime(2026, 3, 2, 9, 0, tzinfo=UTC)
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def advance(self, **delta) -> None:
+        self.now += timedelta(**delta)
+
+
+@pytest.fixture
+def clock() -> FakeClock:
+    return FakeClock()
+
+
+@pytest.fixture
+def api(app_engine: Engine, clock: FakeClock) -> Iterator[TestClient]:
+    from app.api.routes import get_clock
+    from app.db import get_engine
+    from app.main import app
+
+    app.dependency_overrides[get_engine] = lambda: app_engine
+    app.dependency_overrides[get_clock] = lambda: clock
+    yield TestClient(app, raise_server_exceptions=False)  # 500s are asserted, not re-raised
+    app.dependency_overrides.clear()

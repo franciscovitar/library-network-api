@@ -174,7 +174,7 @@ class Loan(Base):
     closed_at: Mapped[datetime | None] = _tstz(nullable=True)
     return_condition: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
-    transfers: Mapped[list[Transfer]] = relationship(back_populates="loan")
+    transfers: Mapped[list[Transfer]] = relationship(back_populates="loan", order_by="Transfer.id")
 
 
 class Transfer(Base):
@@ -203,7 +203,9 @@ class Transfer(Base):
     received_at: Mapped[datetime | None] = _tstz(nullable=True)
 
     loan: Mapped[Loan] = relationship(back_populates="transfers")
-    events: Mapped[list[TransferEvent]] = relationship(back_populates="transfer")
+    events: Mapped[list[TransferEvent]] = relationship(
+        back_populates="transfer", order_by="TransferEvent.id"
+    )
 
 
 _LEGAL_STEP_SQL = " OR ".join(

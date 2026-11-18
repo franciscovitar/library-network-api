@@ -48,3 +48,24 @@ def test_openapi_describes_current_endpoints():
     assert response.status_code == 200
     assert "/health" in response.json()["paths"]
     assert "/ready" in response.json()["paths"]
+
+
+def test_openapi_documents_the_lending_contract():
+    spec = client.get("/openapi.json").json()
+    paths = spec["paths"]
+    for path, method in [
+        ("/api/v1/branches", "get"),
+        ("/api/v1/books", "get"),
+        ("/api/v1/copies/{copy_id}", "get"),
+        ("/api/v1/loans/{loan_id}", "get"),
+        ("/api/v1/transfers/{transfer_id}", "get"),
+        ("/api/v1/loans/interlibrary", "post"),
+        ("/api/v1/transfers/{transfer_id}/transitions", "post"),
+        ("/api/v1/loans/{loan_id}/activate", "post"),
+        ("/api/v1/loans/{loan_id}/return", "post"),
+    ]:
+        assert method in paths[path], (path, method)
+    request = paths["/api/v1/loans/interlibrary"]["post"]
+    key = next(p for p in request["parameters"] if p["name"] == "Idempotency-Key")
+    assert key["required"] is True
+    assert {"201", "200", "404", "409", "422"} <= set(request["responses"])
