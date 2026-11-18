@@ -23,7 +23,17 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: needs a real PostgreSQL server (TEST_DATABASE_URL); skipped otherwise",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's `Depends(...)` default argument is the framework idiom.
+"app/main.py" = ["B008"]
