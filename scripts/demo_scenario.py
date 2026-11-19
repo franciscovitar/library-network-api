@@ -175,7 +175,7 @@ class Demo:
         self.say("    outcomes: one request created the loan (201), the other was refused (409)")
         self.say("    refusal code: copy_not_available")
         self.say(
-            f"    loan {loan_id}: {loan['status']}; transfers: "
+            f"    loan created: {loan['status']}; transfers: "
             f"{[(t['direction'], t['status']) for t in loan['transfers']]}"
         )
         outward_id = next(t["id"] for t in loan["transfers"] if t["direction"] == "OUTBOUND")
@@ -240,7 +240,7 @@ class Demo:
         if final["status"] != "CLOSED":
             raise DemoError(f"loan is {final['status']}, expected CLOSED")
         self.say(
-            f"    loan {loan_id}: {final['status']}; all transfers: "
+            f"    loan: {final['status']}; all transfers: "
             f"{sorted({t['status'] for t in final['transfers']})}"
         )
         self.show_copy("AVAILABLE", 1)

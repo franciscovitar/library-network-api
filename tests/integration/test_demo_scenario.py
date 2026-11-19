@@ -1,6 +1,7 @@
 """The demo script stays correct: it runs in-process against the API on real PostgreSQL."""
 
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,7 @@ def test_demo_completes_the_full_cycle(api, app_engine):
     demo = load_demo()
     text = transcript(demo)
     assert text.rstrip().endswith("DEMO OK: complete loan cycle verified")
+    assert re.search(r"\bloan\s+\d+\b", text) is None  # race-dependent ids stay out of transcript
     # exactly one loan survived the race; two transfers; 4 + 4 history rows; 1 key claim kept
     # for the winner (the loser's claim rolled back) + none for the refused "blocked" request.
     assert counts(app_engine) == {

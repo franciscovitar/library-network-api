@@ -1,10 +1,10 @@
 # Library Network API
 
-**Status:** Checkpoint A functionally complete locally; a GitHub Actions workflow is defined (its real run is recorded on PR #1); the public case study is still pending. This is a **portfolio engineering lab**, not a production or hosted API.
+**Status:** Checkpoint A verified by a successful GitHub Actions run; a [draft case study](docs/case-study.md) is ready for review. Academic-source attribution is still pending. This is a **portfolio engineering lab**, not a production or hosted API.
 
 A deliberately bounded Python/FastAPI + PostgreSQL project to demonstrate safe interlibrary lending, transactional domain logic, concurrency, idempotency and verifiable testing.
 
-**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** hosted deployment, authentication, public case study. See [Status and Checkpoint A](#status-and-checkpoint-a).
+**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** hosted deployment or authentication. The case study remains a draft until attribution and review are complete. See [Status and Checkpoint A](#status-and-checkpoint-a).
 
 ## Quick start: local-only Docker demo
 
@@ -139,7 +139,7 @@ Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/per
 | Runnable without custom frontend or cloud signup | **Met** |
 | Reproducible in CI | Workflow defined and locally emulated on Python 3.13; **real run result: see PR #1 checks** (this table is not updated per run) |
 
-Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and public evidence (including a documented CI failure case) are pending**, so the project must not be presented as finished.
+Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study is drafted but not approved**; academic-source attribution and a documented hosted CI failure case remain pending, so the project must not be presented as finished.
 
 Known limitations: loan ids can have gaps (ids are reserved before validation); CI runs on pull requests only (no push/main trigger, no required-check rule configured); no cancellation or recovery of an abandoned `REQUESTED` loan and no reinstatement of `RETIRED` copies (V1 scope); fixed 14-day loan period, no renewals or fines; unauthenticated local-demo write API; Docker image verified on Docker Desktop for Windows only; `lock_timeout` is set in tests, not enforced in the app engine.
 
@@ -147,6 +147,7 @@ Windows + Docker Desktop crashes on stale sockets: [docs/windows-docker-desktop.
 
 ## Architecture & boundaries
 
+- [Portfolio case study — draft](docs/case-study.md) (CI evidence linked; attribution still under review)
 - [V1.1 architecture contract (PAS draft PR)](https://github.com/franciscovitar/personal-ai-system/blob/professional/portfolio-library-network-architecture-20261118/AI/projects/library-network-api/ARCHITECTURE_V1.md)
 - [Project tracking and verifiable milestones (Notion)](https://app.notion.com/p/41c086274b6f81528248e6395f51ad66)
 - [Original academic source, preserved separately (tp-DAO)](https://github.com/franciscovitar/tp-DAO)
@@ -155,4 +156,4 @@ The application follows the same *domain scenario* as the academic project but d
 
 Layout: `app/api` (routes, schemas, errors) -> `app/application` (one use case per command, locking) -> `app/domain` (states, pure rules, errors) -> `app/persistence` (models, queries, seed); `alembic/`; `tests/{unit,integration}`.
 
-Next: record a deliberate CI failure case and write the public case study. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.
+Next: review academic-source attribution and the draft case study; document a CI failure case without using hosted runners for iterative diagnosis. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.
