@@ -48,17 +48,30 @@ $socketDirs = @($runDir, (Join-Path $env:LOCALAPPDATA 'docker-secrets-engine'))
 
 function Test-DockerResponds {
     # `docker info` can HANG (not fail) while Docker Desktop is half-dead, so run it as a child
-    # process with a hard timeout instead of calling it inline.
+    # process with a hard timeout instead of calling it inline. Start-Process needs files to
+    # redirect into; they are created in a private temp folder that is ALWAYS removed again
+    # (success, failure or timeout), so repeated polling leaves nothing behind in %TEMP%.
     param([int]$TimeoutMs = 8000)
-    $p = Start-Process -FilePath 'docker' -ArgumentList 'info', '--format', '{{.ServerVersion}}' `
-        -WindowStyle Hidden -PassThru -RedirectStandardOutput ([IO.Path]::GetTempFileName()) `
-        -RedirectStandardError ([IO.Path]::GetTempFileName())
-    $null = $p.Handle  # PS 5.1: without touching Handle, ExitCode can come back $null
-    if (-not $p.WaitForExit($TimeoutMs)) {
-        try { $p.Kill() } catch { }
-        return $false
+    $scratch = Join-Path ([IO.Path]::GetTempPath()) ('docker-probe-' + [Guid]::NewGuid().ToString('N'))
+    $null = New-Item -ItemType Directory -Path $scratch
+    $p = $null
+    try {
+        $p = Start-Process -FilePath 'docker' -ArgumentList 'info', '--format', '{{.ServerVersion}}' `
+            -WindowStyle Hidden -PassThru `
+            -RedirectStandardOutput (Join-Path $scratch 'out.txt') `
+            -RedirectStandardError (Join-Path $scratch 'err.txt')
+        $null = $p.Handle  # PS 5.1: without touching Handle, ExitCode can come back $null
+        if (-not $p.WaitForExit($TimeoutMs)) {
+            try { $p.Kill(); $null = $p.WaitForExit(2000) } catch { }
+            return $false
+        }
+        return ($p.ExitCode -eq 0)
     }
-    return ($p.ExitCode -eq 0)
+    finally {
+        if ($p) { $p.Dispose() }
+        # Only ever removes the folder created above (unique GUID name inside the temp path).
+        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Test-StaleSocketFailure {

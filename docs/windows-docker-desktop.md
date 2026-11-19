@@ -86,6 +86,8 @@ followed by a successful engine start. Bugs found and fixed while testing it: `d
 becoming a terminating error under `$ErrorActionPreference = 'Stop'`. Not exercised: a normal start
 of a *healthy* Docker from a cold state with no stale sockets.
 
+Temporary files: the `docker info` probe used to leave two empty `tmp*.tmp` files in `%TEMP%` per call (75 had accumulated in one session). It now runs in a private `docker-probe-<guid>` folder that is always removed (normal, failed and timed-out probes). Verified: 8 probes, including forced timeouts, left no files, no probe folders and no orphan `docker` processes. The 75 old empty files were **not** deleted automatically (they cannot be told apart from other programs' temp files); remove them yourself if you wish.
+
 Prevention: quit Docker Desktop from its tray menu before shutting down; avoid force-killing
 `com.docker.backend`. Old `run.*` / `*.stale-*` folders are tiny; delete them manually only while
 Docker is stopped, if at all.

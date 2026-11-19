@@ -1,10 +1,10 @@
 # Library Network API
 
-**Status:** Checkpoint A functionally complete **locally** (CI and the public case study are still pending). This is a **portfolio engineering lab**, not a production or hosted API.
+**Status:** Checkpoint A functionally complete locally; a GitHub Actions workflow is defined (its real run is recorded on PR #1); the public case study is still pending. This is a **portfolio engineering lab**, not a production or hosted API.
 
 A deliberately bounded Python/FastAPI + PostgreSQL project to demonstrate safe interlibrary lending, transactional domain logic, concurrency, idempotency and verifiable testing.
 
-**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). **Not implemented / not verified:** CI, hosted deployment, authentication, public case study. See [Status and Checkpoint A](#status-and-checkpoint-a).
+**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** hosted deployment, authentication, public case study. See [Status and Checkpoint A](#status-and-checkpoint-a).
 
 ## Quick start: local-only Docker demo
 
@@ -14,11 +14,16 @@ Prerequisite: Docker with Compose.
 docker compose up --build -d      # db -> `alembic upgrade head` (migrate job) -> API
 curl http://127.0.0.1:8000/ready
 docker compose run --rm api python -m app.persistence.seed   # synthetic demo data (insert-only)
+python scripts/demo_scenario.py                              # full loan cycle, asserted step by step
 ```
 
 Open http://127.0.0.1:8000/docs for Swagger/OpenAPI. The seed refuses to touch a database that already has data ("Seed skipped"). `docker compose down` keeps the database volume; `docker compose down -v` destroys local demo data, run it only intentionally.
 
 The API binds to **127.0.0.1 only** and PostgreSQL publishes **no host port**. Compose credentials are non-secret local demo values. The API is unauthenticated and **not safe to expose publicly**.
+
+## Deterministic demo
+
+[`scripts/demo_scenario.py`](scripts/demo_scenario.py) (standard library only) drives one complete cycle over HTTP and asserts every step: two **simultaneous** requests for one copy (exactly one wins), idempotent replay and key reuse, an illegal transition refused, the outward trip, activation, the borrower's return (the copy stays blocked), the return trip, and the final state (copy `AVAILABLE` at its owner, loan `CLOSED`). It needs the seeded demo data and an unused `--run-id` (a reused one is refused by a side-effect-free pre-check). The transcript omits everything that depends on timing or on which racing request wins, so two runs on freshly seeded databases are byte-identical (checked 3 times over real HTTP against uvicorn, and by a test). Loan ids are not printed because they are reserved before validation, so rejected requests leave gaps in the sequence.
 
 ## The lifecycle
 
@@ -66,6 +71,7 @@ Lock order for every command: **idempotency claim (request only) -> copy -> loan
 ```bash
 python -m pip install -e ".[dev]"
 python -m pytest -q                      # unit + HTTP only; integration tests are SKIPPED without a database
+                                         # (set REQUIRE_INTEGRATION_TESTS=1 to turn skips into failures, as CI does)
 python -m ruff check . && python -m ruff format --check .
 ```
 
@@ -89,13 +95,24 @@ The tests create uniquely named throwaway databases (`lnapi_test_*`), build the 
 | Rollback | injected failure after rows were written (request, outward transitions, final return reception, return) rolls back loan, copy, transfer, history and key claim together; response is a sanitized 500 |
 | Concurrency | different keys, same copy (2 and 5 threads, plus injected scheduler delays): one `201`, rest `409`, one loan/transfer/event/claim; same key + body (2 and 6 threads, plus a delayed winner): one `201`, rest `200` with the same loan id, no duplicates; same key + different bodies; simultaneous advance / receipt / activation / return apply once; a mixed-command stress test on one loan ends consistent with no `500` |
 
-Local results (2026-11-18, Windows 11, Docker Desktop 4.51.0, `postgres:17-alpine`, Python 3.14.3):
+Local results (2026-11-18, Windows 11, Docker Desktop 4.51.0, `postgres:17-alpine`):
 
-- With PostgreSQL: **126 passed**.
-- Without `TEST_DATABASE_URL`: 12 passed, 114 **skipped** (skips are not evidence).
+- With PostgreSQL, Python 3.14.3: **129 passed** (12 unit/HTTP + 117 integration).
+- With PostgreSQL, **in a `python:3.13-slim` container** (same base as the Dockerfile) following the CI steps: install, ruff, pytest, report guard -> **129 passed, 0 skipped**.
+- Without `TEST_DATABASE_URL`: 12 passed, 117 **skipped** (skips are not evidence).
 - `ruff check` / `ruff format --check`: clean. Concurrency + idempotency/rollback files repeated 5 times: 31/31 passed each time.
 - **Mutation checks** (manually removed the implementation, then restored it): without the copy `FOR UPDATE`, the different-keys tests fail; without any row lock, the simultaneous advance/receipt/activation/return tests also fail; ignoring the request hash fails the key-reuse tests; skipping the `AVAILABLE` check fails 9 tests. Honest limit: the mixed-command stress test still passes without locks (database constraints turn the races into `409`s), so it demonstrates freedom from deadlocks and `500`s, not the necessity of the locks.
-- Not CI: these are local runs; no GitHub Actions workflow exists yet.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on **pull requests** only: Ubuntu runner, Python 3.13 (a step fails if it drifts from the Dockerfile's base image), a `postgres:17-alpine` service, `ruff check`, `ruff format --check`, the whole pytest suite, and a report check. Actions are pinned to commit SHAs; permissions are `contents: read`; the database credentials are throwaway CI values.
+
+**CI cannot go green with the PostgreSQL tests skipped**, by two independent guards:
+
+1. `REQUIRE_INTEGRATION_TESTS=1` (set by the workflow): [`tests/conftest.py`](tests/conftest.py) aborts the run (exit 2) if `TEST_DATABASE_URL` is unset or the database is unreachable, and at the end forces a failing exit code if *any* test was skipped or no integration test passed.
+2. [`scripts/ci/check_test_report.py`](scripts/ci/check_test_report.py) re-reads the JUnit XML and fails on any failure, **any skip**, or fewer than 100 passed integration tests (a tripwire against the suite shrinking silently; raise it when tests are added).
+
+Both guards were exercised locally before pushing: required-but-no-database (exit 2), unreachable database (exit 2), skips allowed when not required (exit 0), a skipped test with the database present (exit 1 despite no failures), the report check on a report with 114 skips (fails) and on a full run (passes). The workflow was validated by parsing it, checking its structure and pinned SHAs, and emulating its steps in the container above. `actionlint` was **not** run (running it was not permitted in this environment). The result of the real GitHub run is recorded in the PR #1 description and checks, not here, so this file never claims a run it cannot link.
 
 ## Data model and decisions
 
@@ -120,11 +137,11 @@ Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/per
 | README with commands | **Met**; the lifecycle diagram above is ASCII, there is no generated diagram |
 | OpenAPI | **Met**: `/openapi.json` lists all routes (tested); Swagger UI page not visually checked |
 | Runnable without custom frontend or cloud signup | **Met** |
-| Reproducible in CI | **Not met**: no GitHub Actions yet |
+| Reproducible in CI | Workflow defined and locally emulated on Python 3.13; **real run result: see PR #1 checks** (this table is not updated per run) |
 
-Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist and pass **locally**; **CI, a scripted deterministic demo, the case study and public evidence are pending**, so the project must not be presented as finished.
+Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and public evidence (including a documented CI failure case) are pending**, so the project must not be presented as finished.
 
-Known limitations: no cancellation or recovery of an abandoned `REQUESTED` loan and no reinstatement of `RETIRED` copies (V1 scope); fixed 14-day loan period, no renewals or fines; unauthenticated local-demo write API; Docker image verified on Docker Desktop for Windows only; `lock_timeout` is set in tests, not enforced in the app engine.
+Known limitations: loan ids can have gaps (ids are reserved before validation); CI runs on pull requests only (no push/main trigger, no required-check rule configured); no cancellation or recovery of an abandoned `REQUESTED` loan and no reinstatement of `RETIRED` copies (V1 scope); fixed 14-day loan period, no renewals or fines; unauthenticated local-demo write API; Docker image verified on Docker Desktop for Windows only; `lock_timeout` is set in tests, not enforced in the app engine.
 
 Windows + Docker Desktop crashes on stale sockets: [docs/windows-docker-desktop.md](docs/windows-docker-desktop.md).
 
@@ -138,4 +155,4 @@ The application follows the same *domain scenario* as the academic project but d
 
 Layout: `app/api` (routes, schemas, errors) -> `app/application` (one use case per command, locking) -> `app/domain` (states, pure rules, errors) -> `app/persistence` (models, queries, seed); `alembic/`; `tests/{unit,integration}`.
 
-Next: CI with a PostgreSQL service, a scripted deterministic demo, then the public case study. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.
+Next: record a deliberate CI failure case and write the public case study. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.
