@@ -1,12 +1,18 @@
 # Case study: reliable interlibrary lending under concurrency
 
-> **Portfolio engineering lab — draft for review.** This is a local-only, AI-assisted backend implementation, not a production service. Academic-source attribution must be checked before making individual-authorship claims.
+> **Portfolio engineering lab — PR draft.** The original academic implementation was an individual project by Francisco Vitar (owner-confirmed and consistent with repository history). This separate API was developed with AI assistance and is not a production service.
 
 ## The problem (30 seconds)
 
 Two library branches share physical books. A member at one branch requests a copy owned by another; staff transfer it out, the member borrows it, and the copy eventually travels home. The tricky part is not listing books. It is keeping **one physical copy from being promised to two members**, including during the return journey and under simultaneous requests.
 
 This project models that problem as a bounded REST API using FastAPI, SQLAlchemy 2, PostgreSQL 17, Alembic and Docker Compose. There is no custom frontend, hosted instance or cloud dependency. The [source repository](../README.md) is designed to be run and inspected locally.
+
+## Role, ownership and provenance
+
+- **Original academic project:** [tp-DAO](https://github.com/franciscovitar/tp-DAO) is the earlier Python/Tkinter/SQLite implementation. Francisco Vitar confirmed he developed that TP individually. The public history inspected for this review contains **72 commits and 14 pull requests**, all attributed to `franciscovitar`, with no declared co-authors. That corroborates the recorded GitHub contributions; it does **not** claim the work was done without development tools or AI assistance.
+- **This portfolio API:** `library-network-api` is a separate FastAPI/PostgreSQL implementation informed by the academic **domain scenario**. A targeted comparison of four representative code-file pairs found no shared substantive code lines; that check is not a full provenance audit or a claim that the underlying domain ideas were invented from scratch.
+- **AI-assisted delivery:** the owner defined and accepted the scope, architecture constraints and review decisions. ChatGPT assisted with planning, review and documentation; Claude Code assisted with implementation, tests and the local demo. Hosted CI provides observable behavior, not a substitute for demonstrating individual technical understanding in an interview.
 
 ## The engineering contract
 
@@ -71,8 +77,8 @@ A deterministic-sequence [demo script](../scripts/demo_scenario.py) asserts the 
 
 | Verification | Observed result | Evidence |
 |---|---|---|
-| Real hosted CI | `success` on commit `96ff6eeb5acfa930af847e51e7478dd8dba0b4fe` | [GitHub Actions run #44435536102](https://github.com/franciscovitar/library-network-api/actions/runs/44435536102) |
-| Python / database | Python 3.13.18, PostgreSQL 17 service, Ubuntu 24.04 | [CI job](https://github.com/franciscovitar/library-network-api/actions/runs/44435536102/job/135263311412) |
+| Real hosted CI | `success` on commit `6b28ee6b257da08a8428a6485c900e7297f6edb3` | [GitHub Actions run #44436793488](https://github.com/franciscovitar/library-network-api/actions/runs/44436793488) |
+| Python / database | Python 3.13.18, PostgreSQL 17 service, Ubuntu 24.04 | [CI job](https://github.com/franciscovitar/library-network-api/actions/runs/44436793488/job/135267545730) |
 | Tests in hosted CI | **129 passed: 117 integration + 12 unit/HTTP; 0 skipped** | Same job's pytest output and JUnit report verification |
 | Static checks | Ruff lint and format passed | Same CI job |
 | Database-backed risk tests | Concurrency, rollback, migration, idempotency and state-machine tests ran within the 117 integration tests | [Test source](../tests/integration) and CI report |
@@ -98,6 +104,6 @@ Expected final assertion: `DEMO OK: complete loan cycle verified`. Use a **new**
 - **Deliberately bounded domain:** no cancellation of abandoned requests, no reinstatement of retired copies, fixed 14-day loan period, no renewals or fines.
 - **Verification limits:** successful GitHub Actions CI is linked above; no deliberate hosted CI failure, `actionlint` invocation, load/performance benchmark or production incident evidence. The Swagger specification is tested, but visual review of Swagger UI was not recorded.
 - **CI policy:** runs on pull requests; it is not currently a required protected-branch check.
-- **Human review still required:** inspect the academic `tp-DAO` contribution history and agree on attribution before using this case as evidence of sole authorship. The domain scenario was informed by that separate academic project; this repository does not present its implementation as a line-by-line port. Development used Claude Code assistance, so artifact evidence alone does not establish unaided personal proficiency.
+- **Claim boundary:** original-TP individual authorship is supported by owner confirmation and GitHub's recorded contributor history; the new API is explicitly AI-assisted. Before using this case to claim personal mastery in interviews, the owner should be able to independently explain and reproduce the transaction, lock-order and failure-handling decisions. This artifact does not establish unaided coding proficiency.
 
-**Takeaway:** the result is a small backend whose interesting property is *consistency under competing writes*, supported by inspectable database constraints, explicit transaction boundaries, reproducible tests and one publicly linked CI execution—not a claim of production readiness or business adoption.
+**Takeaway:** the result is a small backend whose interesting property is *consistency under competing writes*, supported by inspectable database constraints, explicit transaction boundaries, reproducible tests and publicly linked CI results—not a claim of production readiness or business adoption.
