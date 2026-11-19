@@ -1,10 +1,10 @@
 # Library Network API
 
-**Status:** Checkpoint A verified by a successful GitHub Actions run; a [draft case study](docs/case-study.md) is ready for review. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.
+**Status:** V1 merged into `main`; Checkpoint A verified by GitHub Actions. The [technical case study](docs/case-study.md) is published in this repository. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.
 
 A deliberately bounded Python/FastAPI + PostgreSQL project to demonstrate safe interlibrary lending, transactional domain logic, concurrency, idempotency and verifiable testing.
 
-**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** hosted deployment or authentication. The case study documents the academic origin and AI assistance, and stays on the draft PR pending final portfolio publication. See [Status and Checkpoint A](#status-and-checkpoint-a).
+**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** hosted deployment or authentication. The case study documents the academic origin and AI assistance and is available on `main`; integration into the separate professional portfolio is still pending. See [Status and Checkpoint A](#status-and-checkpoint-a).
 
 ## Quick start: local-only Docker demo
 
@@ -112,7 +112,7 @@ Local results (2026-11-18, Windows 11, Docker Desktop 4.51.0, `postgres:17-alpin
 1. `REQUIRE_INTEGRATION_TESTS=1` (set by the workflow): [`tests/conftest.py`](tests/conftest.py) aborts the run (exit 2) if `TEST_DATABASE_URL` is unset or the database is unreachable, and at the end forces a failing exit code if *any* test was skipped or no integration test passed.
 2. [`scripts/ci/check_test_report.py`](scripts/ci/check_test_report.py) re-reads the JUnit XML and fails on any failure, **any skip**, or fewer than 100 passed integration tests (a tripwire against the suite shrinking silently; raise it when tests are added).
 
-Both guards were exercised locally before pushing: required-but-no-database (exit 2), unreachable database (exit 2), skips allowed when not required (exit 0), a skipped test with the database present (exit 1 despite no failures), the report check on a report with 114 skips (fails) and on a full run (passes). The workflow was validated by parsing it, checking its structure and pinned SHAs, and emulating its steps in the container above. `actionlint` was **not** run (running it was not permitted in this environment). The result of the real GitHub run is recorded in the PR #1 description and checks, not here, so this file never claims a run it cannot link.
+Both guards were exercised locally before pushing: required-but-no-database (exit 2), unreachable database (exit 2), skips allowed when not required (exit 0), a skipped test with the database present (exit 1 despite no failures), the report check on a report with 114 skips (fails) and on a full run (passes). The workflow was validated by parsing it, checking its structure and pinned SHAs, and emulating its steps in the container above. `actionlint` was **not** run (running it was not permitted in this environment). The final pre-merge PR run passed **129 tests** (117 integration, 12 unit/HTTP, 0 skipped) with Ruff clean: [GitHub Actions #44441208480](https://github.com/franciscovitar/library-network-api/actions/runs/44441208480). The documentation-only merge follow-up does not claim a separate `main` run.
 
 ## Data model and decisions
 
@@ -137,9 +137,9 @@ Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/per
 | README with commands | **Met**; the lifecycle diagram above is ASCII, there is no generated diagram |
 | OpenAPI | **Met**: `/openapi.json` lists all routes (tested); Swagger UI page not visually checked |
 | Runnable without custom frontend or cloud signup | **Met** |
-| Reproducible in CI | Workflow defined and locally emulated on Python 3.13; **real run result: see PR #1 checks** (this table is not updated per run) |
+| Reproducible in CI | **Met:** [129 tests passed, 0 skipped](https://github.com/franciscovitar/library-network-api/actions/runs/44441208480) on the final PR head with Python 3.13 and PostgreSQL 17 |
 
-Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and original-TP authorship are documented**; the PR remains a draft, and a deliberate hosted CI failure example and public portfolio integration are not yet completed. This is not a production-finished product.
+Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and original-TP authorship are documented and merged into `main`.** A deliberately failing hosted CI example and integration into the separate professional portfolio are not completed; the local demo is not a production service.
 
 Known limitations: loan ids can have gaps (ids are reserved before validation); CI runs on pull requests only (no push/main trigger, no required-check rule configured); no cancellation or recovery of an abandoned `REQUESTED` loan and no reinstatement of `RETIRED` copies (V1 scope); fixed 14-day loan period, no renewals or fines; unauthenticated local-demo write API; Docker image verified on Docker Desktop for Windows only; `lock_timeout` is set in tests, not enforced in the app engine.
 
@@ -147,7 +147,7 @@ Windows + Docker Desktop crashes on stale sockets: [docs/windows-docker-desktop.
 
 ## Architecture & boundaries
 
-- [Portfolio case study — PR draft](docs/case-study.md) (CI evidence, original-TP authorship and AI-assisted delivery disclosed)
+- [Portfolio technical case study](docs/case-study.md) (CI evidence, original-TP authorship and AI-assisted delivery disclosed)
 - [V1.1 architecture contract (PAS draft PR)](https://github.com/franciscovitar/personal-ai-system/blob/professional/portfolio-library-network-architecture-20261118/AI/projects/library-network-api/ARCHITECTURE_V1.md)
 - [Project tracking and verifiable milestones (Notion)](https://app.notion.com/p/41c086274b6f81528248e6395f51ad66)
 - [Original academic source, preserved separately (tp-DAO)](https://github.com/franciscovitar/tp-DAO)
@@ -156,4 +156,4 @@ The application follows the same *domain scenario* as the separately preserved a
 
 Layout: `app/api` (routes, schemas, errors) -> `app/application` (one use case per command, locking) -> `app/domain` (states, pure rules, errors) -> `app/persistence` (models, queries, seed); `alembic/`; `tests/{unit,integration}`.
 
-Next: review and integrate the case study into the public portfolio after owner acceptance; document an explicit CI failure case without using hosted runners for iterative diagnosis. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.
+Next: integrate this already-merged case study into the separate professional portfolio and synchronize project tracking; document a deliberate CI failure case locally before any further hosted verification is considered. Explicit V1 exclusions: new UI, auth SaaS, external library integrations, broad reporting/CRUD, Node rewrite, cloud deployment and production-readiness claims.

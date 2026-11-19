@@ -1,6 +1,6 @@
 # Case study: reliable interlibrary lending under concurrency
 
-> **Portfolio engineering lab — PR draft.** The original academic implementation was an individual project by Francisco Vitar (owner-confirmed and consistent with repository history). This separate API was developed with AI assistance and is not a production service.
+> **Portfolio engineering lab — V1 on `main`.** The original academic implementation was an individual project by Francisco Vitar (owner-confirmed and consistent with repository history). This separate API was developed with AI assistance and is not a production service.
 
 ## The problem (30 seconds)
 
@@ -77,8 +77,8 @@ A deterministic-sequence [demo script](../scripts/demo_scenario.py) asserts the 
 
 | Verification | Observed result | Evidence |
 |---|---|---|
-| Real hosted CI | `success` on commit `6b28ee6b257da08a8428a6485c900e7297f6edb3` | [GitHub Actions run #44436793488](https://github.com/franciscovitar/library-network-api/actions/runs/44436793488) |
-| Python / database | Python 3.13.18, PostgreSQL 17 service, Ubuntu 24.04 | [CI job](https://github.com/franciscovitar/library-network-api/actions/runs/44436793488/job/135267545730) |
+| Real hosted CI | `success` on commit `efc06a3c777ca571130647796d29ed464512fd9b` | [GitHub Actions run #44441208480](https://github.com/franciscovitar/library-network-api/actions/runs/44441208480) |
+| Python / database | Python 3.13.18, PostgreSQL 17 service, Ubuntu 24.04 | [CI job](https://github.com/franciscovitar/library-network-api/actions/runs/44441208480/job/135282200510) |
 | Tests in hosted CI | **129 passed: 117 integration + 12 unit/HTTP; 0 skipped** | Same job's pytest output and JUnit report verification |
 | Static checks | Ruff lint and format passed | Same CI job |
 | Database-backed risk tests | Concurrency, rollback, migration, idempotency and state-machine tests ran within the 117 integration tests | [Test source](../tests/integration) and CI report |
