@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f6f4ef" />
+  <meta name="description" content="Simulador público de Library Network API: concurrencia, préstamos interbibliotecarios, transacciones e idempotencia, con código FastAPI y PostgreSQL revisable." />
+  <meta property="og:title" content="Library Network API · Engineering Showcase" />
+  <meta property="og:description" content="Una copia, dos solicitudes, una sola promesa. Explorá los estados de un préstamo y las garantías de concurrencia." />
+  <title>Library Network API · Engineering Showcase</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#simulador">Saltar al simulador</a>
+  <header class="topbar wrap">
+    <a class="brand" href="#inicio" aria-label="Library Network API, inicio"><span class="brand-icon" aria-hidden="true">L<span>·</span></span><span>LIBRARY<br /><b>NETWORK API</b></span></a>
+    <nav aria-label="Navegación principal"><a href="#simulador">Simulador</a><a href="#arquitectura">Ingeniería</a><a href="#evidencia">Evidencia</a></nav>
+    <a class="nav-github" href="https://github.com/franciscovitar/library-network-api" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="inicio">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span> ENGINEERING LAB / 01 <span class="eyebrow-rule"></span> FASTAPI + POSTGRESQL</p>
+        <h1 id="hero-title">Una copia.<br />Dos solicitudes.<br /><em>Una sola promesa.</em></h1>
+        <p class="hero-lead">¿Qué pasa cuando dos sucursales piden el mismo libro al mismo tiempo? El problema no es dibujar un catálogo: es asegurar que un ejemplar físico nunca se preste dos veces.</p>
+        <div class="hero-actions"><a class="button solid" href="#simulador">Explorar el caso <span aria-hidden="true">↘</span></a><a class="button plain" href="https://github.com/franciscovitar/library-network-api/blob/main/docs/case-study.md" target="_blank" rel="noopener noreferrer">Leer caso técnico ↗</a></div>
+      </div>
+      <div class="hero-art" aria-label="Esquema del conflicto: dos solicitudes llegan al mismo ejemplar, solo una se acepta">
+        <div class="stamp">CONSISTENCY<br/>OVER CONVENIENCE</div>
+        <div class="art-tag">PHYSICAL COPY <strong>CP-0001</strong></div>
+        <div class="book"><div class="book-spine">THE DISTRIBUTED<br/>SHELF</div><span>001</span><div class="book-bottom">CENTRAL LIBRARY<br/>PROPERTY</div></div>
+        <div class="art-request a">NORTE <span>→</span><b>202 ACCEPTED</b></div>
+        <div class="art-request b">SUR <span>→</span><b>409 CONFLICT</b></div>
+        <p class="art-caption">02 REQUESTS <span>/</span> 01 COPY <span>/</span> 01 WINNER</p>
+      </div>
+    </section>
+
+    <div class="tech-strip" aria-label="Tecnologías principales"><div class="wrap"><span>PYTHON / FASTAPI</span><span>POSTGRESQL 17</span><span>SQLALCHEMY 2</span><span>ALEMBIC</span><span>DOCKER</span><span>CI + INTEGRATION TESTS</span></div></div>
+
+    <section id="simulador" class="lab wrap" aria-labelledby="lab-title">
+      <div class="section-intro"><div><p class="eyebrow">01 / INTERACTIVE LAB</p><h2 id="lab-title">Poné a prueba las reglas.</h2><p>Reproducí un flujo de préstamo, un conflicto y un reintento. Los estados cambian en el navegador para explicar decisiones del backend.</p></div><div class="demo-note"><span aria-hidden="true">◎</span><div><strong>Simulación sintética</strong><small>Esta página no conecta con FastAPI ni PostgreSQL. Los tests del backend real están en GitHub.</small></div></div></div>
+      <div class="lab-grid">
+        <div class="simulation-panel">
+          <div class="panel-top"><div><span class="panel-kicker">LIVE MODEL / BROWSER ONLY</span><h3>Estado del ejemplar</h3></div><span class="panel-chip" id="copy-status">AVAILABLE</span></div>
+          <div class="copy-info"><div class="mini-book" aria-hidden="true">L<br/><span>001</span></div><div><p class="book-id">CP-0001 · Ejemplar físico</p><strong class="book-title">Sistemas distribuidos</strong><p class="muted">Propietaria: Biblioteca Central</p></div></div>
+          <dl class="state-table"><div><dt>Ubicación física</dt><dd id="location">Central</dd></div><div><dt>Estado del préstamo</dt><dd id="loan-status">Sin préstamo</dd></div><div><dt>Sucursal solicitante</dt><dd id="borrower">—</dd></div><div><dt>Traslado</dt><dd id="transfer">—</dd></div></dl>
+          <div class="phase-track" aria-label="Estados del préstamo"><span data-phase="REQUESTED">Solicitud</span><span data-phase="ACTIVE">Préstamo</span><span data-phase="RETURNING">Devolución</span><span data-phase="CLOSED">Cierre</span></div>
+          <div class="action-area"><p class="action-caption">1. CREÁ EL CONFLICTO</p><button class="button action-main" data-action="RACE" id="race">Simular dos solicitudes <span aria-hidden="true">↗</span></button><p class="action-caption">2. AVANZÁ EL CICLO</p><div class="action-row"><button class="button action" data-action="ADVANCE" id="advance">Avanzar traslado</button><button class="button action" data-action="ACTIVATE" id="activate">Activar préstamo</button></div><div class="action-row"><button class="button action" data-action="RETURN_GOOD" id="return-good">Devolver · buen estado</button><button class="button action" data-action="RETURN_DAMAGED" id="return-damaged">Devolver · dañado</button></div><p class="action-caption">3. PROBÁ LAS GARANTÍAS</p><div class="action-row"><button class="button subtle" data-action="RETRY" id="retry">Reintento idéntico</button><button class="button subtle" data-action="ALTER">Alterar payload</button><button class="button subtle" data-action="INVALID">Salto ilegal</button></div><button class="reset" data-action="RESET">↺ Reiniciar escenario</button></div>
+        </div>
+        <aside class="events-panel" aria-labelledby="events-title"><div class="events-head"><div><span class="panel-kicker">AUDIT TRAIL / SYNTHETIC</span><h3 id="events-title">Bitácora de eventos</h3></div><span class="live-indicator">● EN VIVO</span></div><p class="events-hint">El orden es determinista. Las respuestas HTTP ilustran las reglas que el código original prueba con PostgreSQL.</p><ol id="event-list" class="event-list" aria-live="polite" aria-relevant="additions text"></ol><div class="events-footer">TRANSACTIONS <span id="event-count">00</span> <span>·</span> CONFLICTS <span id="conflict-count">00</span></div></aside>
+      </div>
+      <div class="invariant-callout"><span class="callout-number">!</span><p><strong>La garantía importante:</strong> incluso al devolver el libro a la sucursal solicitante, sigue bloqueado. Solo queda disponible después de que vuelve a la sucursal propietaria. Si vuelve dañado, se retira.</p></div>
+    </section>
+
+    <section id="arquitectura" class="architecture"><div class="wrap"><div class="section-intro light"><div><p class="eyebrow">02 / UNDER THE HOOD</p><h2>La complejidad está<br /><em>debajo de la superficie.</em></h2><p>El simulador enseña las reglas. La implementación original las hace cumplir con transacciones, bloqueos, restricciones SQL y pruebas concurrentes.</p></div></div><div class="arch-grid"><article><span>01</span><h3>Transacciones atómicas</h3><p>La solicitud, el traslado, el historial y la clave de idempotencia confirman juntos o se revierten juntos.</p><code>sessionmaker.begin()</code></article><article><span>02</span><h3>Bloqueos por fila</h3><p>Las solicitudes rivales revalidan el estado después de adquirir bloqueos en un orden estable.</p><code>SELECT … FOR UPDATE</code></article><article><span>03</span><h3>Integridad en la base</h3><p>Un índice único parcial impide dos préstamos no terminales para el mismo ejemplar.</p><code>UNIQUE WHERE status IN (...)</code></article><article><span>04</span><h3>Reintentos seguros</h3><p>La misma clave y cuerpo reutilizan el resultado. La misma clave con distinto contenido obtiene un conflicto.</p><code>Idempotency-Key · 409</code></article></div><div class="architecture-footer"><p>El backend es un <strong>monolito modular</strong>: API → comandos → dominio → PostgreSQL. Un producto complejo no necesita microservicios para ser serio.</p><a href="https://github.com/franciscovitar/library-network-api/tree/main/app" target="_blank" rel="noopener noreferrer">Ver la arquitectura en código ↗</a></div></div></section>
+
+    <section id="evidencia" class="evidence wrap"><div class="section-intro"><div><p class="eyebrow">03 / PROOF, NOT PROMISES</p><h2>Lo que podés verificar.</h2><p>El proyecto incluye pruebas de integración sobre PostgreSQL real, migraciones, un recorrido reproducible y CI. No afirmamos que esta web ejecute esas pruebas.</p></div></div><div class="evidence-grid"><a href="https://github.com/franciscovitar/library-network-api/actions" target="_blank" rel="noopener noreferrer"><span>01 / TESTS</span><h3>Concurrencia e idempotencia</h3><p>Pruebas de race conditions, rollback y límites de los estados.</p><b>VER WORKFLOWS ↗</b></a><a href="https://github.com/franciscovitar/library-network-api/blob/main/scripts/demo_scenario.py" target="_blank" rel="noopener noreferrer"><span>02 / REPRODUCIBLE DEMO</span><h3>Ciclo completo por HTTP</h3><p>Script determinista contra API y PostgreSQL locales con seed sintética.</p><b>VER SCRIPT ↗</b></a><a href="https://github.com/franciscovitar/library-network-api/blob/main/docs/case-study.md" target="_blank" rel="noopener noreferrer"><span>03 / ENGINEERING STORY</span><h3>Decisiones y límites</h3><p>Incluye origen académico, asistencia IA, compromisos y evidencia.</p><b>LEER CASO ↗</b></a></div></section>
+  </main>
+  <footer class="footer"><div class="wrap"><div><strong>LIBRARY NETWORK API</strong><p>Engineering portfolio · Francisco Vitar</p></div><p>Web pública: estados ficticios. API real: ejecutable localmente, no expuesta sin autenticación.</p><a href="https://franvitar.genovasite.com/work/library-network-api?lang=es" target="_blank" rel="noopener noreferrer">Volver al portfolio ↗</a></div></footer>
+</body>
+</html>

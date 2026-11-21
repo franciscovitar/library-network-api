@@ -1,0 +1,6 @@
+{
+  "name": "library-network-showcase",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test model.test.mjs" }
+}

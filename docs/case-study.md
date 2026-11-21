@@ -6,7 +6,7 @@
 
 Two library branches share physical books. A member at one branch requests a copy owned by another; staff transfer it out, the member borrows it, and the copy eventually travels home. The tricky part is not listing books. It is keeping **one physical copy from being promised to two members**, including during the return journey and under simultaneous requests.
 
-This project models that problem as a bounded REST API using FastAPI, SQLAlchemy 2, PostgreSQL 17, Alembic and Docker Compose. There is no custom frontend, hosted instance or cloud dependency. The [source repository](../README.md) is designed to be run and inspected locally.
+This project models that problem as a bounded REST API using FastAPI, SQLAlchemy 2, PostgreSQL 17, Alembic and Docker Compose. The real API remains local-only and unauthenticated; it must not be exposed publicly. A [separate interactive frontend](../showcase/) now explains its invariants with a deterministic browser model. That UI is not an HTTP client of the backend and cannot prove PostgreSQL transactions or concurrent locking. The [backend source](../README.md) remains runnable and inspectable locally.
 
 ## Role, ownership and provenance
 
