@@ -1,5 +1,7 @@
 # Library Network API
 
+> **Product direction (21 Nov 2026):** evolve the real FastAPI/PostgreSQL backend into a usable **Library Network operations web application** for librarians and managers. The existing synthetic `showcase/` stays as engineering evidence but is not the future default UI. The approved goal, proposed architecture, security gaps, reuse map and Definition of Done are in [docs/PRODUCT_DIRECTION_V2.md](docs/PRODUCT_DIRECTION_V2.md). This is a target, **not** a currently hosted/authenticated API.
+
 **Status:** V1 merged into `main`; Checkpoint A verified by GitHub Actions. The [technical case study](docs/case-study.md) is published in this repository. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.
 
 A deliberately bounded Python/FastAPI + PostgreSQL project to demonstrate safe interlibrary lending, transactional domain logic, concurrency, idempotency and verifiable testing.
