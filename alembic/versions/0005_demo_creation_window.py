@@ -7,6 +7,7 @@ Additive metadata only; no existing data touched.
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0005"
