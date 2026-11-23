@@ -143,21 +143,15 @@ def test_cleanup_expired_interlibrary_transfers_and_events_without_cross_data(ap
     loan = requested.json()
     outbound = loan["transfers"][0]["id"]
     for state in ("DISPATCHED", "IN_TRANSIT", "RECEIVED"):
-        result = api.post(
-            f"{GUEST}/transfers/{outbound}/transitions", json={"next_status": state}
-        )
+        result = api.post(f"{GUEST}/transfers/{outbound}/transitions", json={"next_status": state})
         assert result.status_code == 200, result.text
     activated = api.post(f"{GUEST}/loans/{loan['id']}/activate")
     assert activated.status_code == 200, activated.text
-    gave_back = api.post(
-        f"{GUEST}/loans/{loan['id']}/return", json={"condition": "GOOD"}
-    )
+    gave_back = api.post(f"{GUEST}/loans/{loan['id']}/return", json={"condition": "GOOD"})
     assert gave_back.status_code == 200, gave_back.text
     returned = next(t["id"] for t in gave_back.json()["transfers"] if t["direction"] == "RETURN")
     for state in ("DISPATCHED", "IN_TRANSIT", "RECEIVED"):
-        moved = api.post(
-            f"{GUEST}/transfers/{returned}/transitions", json={"next_status": state}
-        )
+        moved = api.post(f"{GUEST}/transfers/{returned}/transitions", json={"next_status": state})
         assert moved.status_code == 200, moved.text
 
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 1

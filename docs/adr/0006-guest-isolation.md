@@ -28,7 +28,9 @@ The API holds only public JWKS and checks signed subject on every request.
   idempotency key and PostgreSQL transactions. New loan keys are prefixed
   with the verified guest subject and branch; 25 new loans per workspace.
 - Two independent synthetic branches are created per workspace; the guest
-  interlibrary transfer UI is **not yet implemented or authorized**.
+  interlibrary transfer UI is now **implemented in the development branch** and
+  restricted by the same workspace ownership contract. Cross-workspace transfers
+  fail closed; this does not authorize public deployment.
 - The previous staff OAuth+RBAC path is retained but not required for guest entry.
 
 ## Evidence and gaps
@@ -36,13 +38,17 @@ The API holds only public JWKS and checks signed subject on every request.
 Real PostgreSQL tests at [CI #45246353465](https://github.com/franciscovitar/library-network-api/actions/runs/45246353465)
 verified two independent guests, foreign branch/member/copy/loan rejection,
 replay behavior, expiry and loan quota: 174 tests passed in total.
-[Web CI #45246892532](https://github.com/franciscovitar/library-network-api/actions/runs/45246892532)
-built no-login Next.js BFF/UI and ran local pure capability tests. No live
-browser login/session persistence or Preview deployed; synthetic test fixtures
-are not proof of real-world security.
+[Backend CI #45254202481](https://github.com/franciscovitar/library-network-api/actions/runs/45254202481)
+verified 183 tests, 160 PostgreSQL integrations, including isolated real
+interlibrary requests and negative foreign-object tests.
+[Chromium CI #45254202312](https://github.com/franciscovitar/library-network-api/actions/runs/45254202312)
+passed two end-to-end HTTP-browser flows through actual FastAPI/PostgreSQL:
+local circulation and complete interbranch logistics. There is still **no
+public HTTPS Preview or Production deployment**; CI loopback tests alone do
+not certify a live application.
 
 **Mandatory before public Preview/Production:** distributed/IP rate limiting,
-storage quotas and abuse guard for guest creation, automatic TTL cleanup with
+storage quotas and abuse guard for guest creation, a scheduled run of the existing safe TTL cleanup with
 foreign-key-safe readback, guest reset and accessibility/browser E2E, cookie
 lifecycle and CSRF tests, secrets/key rotation and budgets. A 24-hour access
 expiry alone is NOT deletion of guest data. No production resource authorized.

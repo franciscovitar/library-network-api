@@ -63,7 +63,11 @@
 - **Observed QA checkpoint** at commit `51e5723adb5149d8dbd4476b222ea755df6936d6`: [Web CI #45241737637](https://github.com/franciscovitar/library-network-api/actions/runs/45241737637) succeeded (npm ci, 3 Node validation tests, TypeScript and production Next build); [Python CI #45241737626](https://github.com/franciscovitar/library-network-api/actions/runs/45241737626) succeeded (PostgreSQL integration suite + Ruff).
 - Post-checkpoint UX polish added logout on mobile and on unprovisioned accounts and hides issue links from read-only staff. These changes require their own final CI readback.
 - Public OAuth integration has **NOT** been operated with real credentials; BFF-to-FastAPI browser E2E **NOT_RUN**. Dedicated demo workspace per visitor, organization isolation, audit, rate-limiting, access provisioning and deployment **NOT_DONE**. No statement of usability as a publicly deployed product.
-\n## Owner clarification — mandatory no-login product (2026-11-23)\n\nThe owner explicitly chose a **real publicly usable application without a login or signup**; every recruiter receives private synthetic PostgreSQL-backed workspace state and operates actual business transactions. Existing GitHub OAuth is OPTIONAL staff/admin-only. This overrides older staff-first entry assumptions but preserves backend signing and permissions. Canonical [DECISION_PUBLIC_NO_LOGIN_20261123.md](DECISION_PUBLIC_NO_LOGIN_20261123.md). No Production/Preview deployment and no claim of completed isolation. PAS main checked at `545aa9def3993be579a333b750739c3558441218`.\n
+
+## Owner clarification — mandatory no-login product (2026-11-23)
+
+The owner explicitly chose a **real publicly usable application without a login or signup**; every recruiter receives private synthetic PostgreSQL-backed workspace state and operates actual business transactions. Existing GitHub OAuth is OPTIONAL staff/admin-only. This overrides older staff-first entry assumptions but preserves backend signing and permissions. Canonical [DECISION_PUBLIC_NO_LOGIN_20261123.md](DECISION_PUBLIC_NO_LOGIN_20261123.md). No Production/Preview deployment and no claim of completed isolation. PAS main checked at `545aa9def3993be579a333b750739c3558441218`.
+
 ## Public no-login guest slice — 2026-11-23 (owner-approved)
 
 - **Canonical intent** [DECISION_PUBLIC_NO_LOGIN_20261123.md](DECISION_PUBLIC_NO_LOGIN_20261123.md): recruiter uses a real PostgreSQL-backed application without OAuth/password. Previous OAuth admin interface remains optional, NOT the primary access path.
@@ -75,3 +79,31 @@
 - Added Next.js `/demo` no-login start, signed anonymous session capability tests, real branch dashboard/catalogue/issue/return UI; [Web CI #45246892532](https://github.com/franciscovitar/library-network-api/actions/runs/45246892532) **success**, commit `eb18560475acbb9f13ab3a47f8a6d2e176a5b167`; no login credentials were used in build.
 - **Not publicly deployable yet:** IP/distributed creation rate limit; active cleanup (DB rows currently outlive access expiry); durable guest reset, full anonymous-session browser E2E, concurrent bootstrap stress, production CSRF/abuse QA, user-facing error polish, branch-to-branch guest transfers, real key management and guarded QA environment. No claim that all institutional functions are fully built.
 - No main merge, no Preview or Production deployment, no real data or billable resource.
+
+## Full guest interlibrary vertical + release safety (2026-11-23)
+
+- Added server-side `/api/v2/guest/loans/interlibrary`, own loan listing,
+  transfer detail/transitions, activation and borrower return. Every operation
+  checks guest workspace, both branches, member, book copy and loan ownership
+  before applying existing transactions. Interlibrary idempotency keys remain
+  scoped by verified guest subject; the 25-loan cap applies to LOCAL and
+  INTERLIBRARY requests.
+- Added `/demo/[branchId]/transfers`: real request, dispatch, transit, receipt,
+  loan activation, borrower return and return-transfer controls, plus navigation
+  and clear status messages. No fake client-side ledger.
+- [CI #45254202481](https://github.com/franciscovitar/library-network-api/actions/runs/45254202481)
+  **183 passed, 0 failed, 0 skipped**, 160 real PostgreSQL integration cases +
+  23 other; [Web CI #45254202098](https://github.com/franciscovitar/library-network-api/actions/runs/45254202098) SUCCESS,
+  [Browser CI #45254202312](https://github.com/franciscovitar/library-network-api/actions/runs/45254202312)
+  **2 Chromium tests passed** (local and complete cross-branch roundtrip),
+  all observed on commit `1d58206713263728f0e246d97d3e7dc260e4809c`.
+- Added a **later** integration test for cleanup of expired workspaces after
+  closed interlibrary transfers (both transfers and 8 events). New HEAD must
+  be checked before counting that test as PASS.
+- Vercel read-only inspection: existing `library-network-showcase` project
+  is connected to this repo and exposes a git-main alias. Because a merge may
+  trigger a deployment, `main` remains untouched until isolation is proven.
+- Official research verified Next.js Origin/Host checks and Vercel WAF rate
+  limiting/cron options. Rate limiting may be billable and was NOT configured.
+  Cleanup scheduler and real HTTPS deployment are NOT_DONE.
+- Handoff and explicit release gate: [RELEASE_READINESS_20261123.md](../ops/RELEASE_READINESS_20261123.md).

@@ -1,66 +1,76 @@
-# Library Network — Operations web (development)
-> **Owner-approved product decision, 23 Nov 2026:** the public product must not require OAuth. [Canonical decision](../docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). The branch now includes anonymous guest bootstrap and isolated PostgreSQL-backed operations at `/demo` via signed server-side cookies and BFF JWT. This is **build-tested development code only, NOT DEPLOYED**, and needs IP rate limits, cleanup and real-browser E2E before public access. Staff GitHub OAuth is optional secondary admin access.\n\n
-**Status:** Unreleased feature branch. Next.js App Router UI/BFF is being
-built on the **real** FastAPI + PostgreSQL backend, not on `showcase/` fixtures.
-This does **not** claim public availability or a browser E2E result.
+# Library Network — real operations web (feature branch)
 
-## Architecture and contract
+**Status:** GitHub PR #4 · implementation in development, **NOT PUBLICLY DEPLOYED**.  
+**Canonical decision:** [public access without login](../docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md).  
+**Release and merge status:** [inspectable gates](../docs/ops/RELEASE_READINESS_20261123.md).
 
-- Public product landing page and protected operator workspace; Spanish UI.
-- GitHub OAuth login via Auth.js v5. The JWT session maps the immutable provider
-  account ID to `github:<providerAccountId>`, **not** an unverified email or username.
-- The BFF signs a new three-minute `RS256` audience token for each upstream
-  FastAPI call, with its **server-only** PKCS#8 key; the browser never receives
-  these tokens, the API URL, or the signing key.
-- FastAPI independently checks the signature against **public** JWKS and
-  validates the active `staff_users`/`staff_branch_grants` rows every time.
-  OAuth login does NOT create permissions. Privileged users must be explicitly
-  provisioned via an approved operator workflow (not yet implemented).
-- Staff routes under `/api/v2` only, server actions enforce a real authenticated
-  session, and Next.js performs Origin/Host CSRF checks. No arbitrary
-  `serverActions.allowedOrigins` overrides.
-- Catalogue, copy inventory, member lookup, loan issue/return, dashboard:
-  data is fetched from PostgreSQL through FastAPI with `cache: no-store`.
-  No localStorage-based loan logic or fake counters.
-- The original `showcase/` is legacy evidence only. It is not the default UI.
+This is the real application built on FastAPI + PostgreSQL, **not** the old
+`showcase/` model. Recruiters do not register or log in.
 
-## Development and safe configuration
+## What works in local browser CI
 
-1. `cd web && npm ci` (Node.js 22 or newer). Dependencies are pinned in `package-lock.json` and verified by GitHub Actions; no external deployment.
-2. Copy `.env.example` to an ignored `.env.local`. Supply **your own**
-   GitHub OAuth application credentials in local environment **without putting
-   them in chat or GitHub**.
-3. Backend: apply Alembic migrations, use a **disposable synthetic** PostgreSQL
-   database, and set issuer/audience and matching PUBLIC JWKS. Keep
-   `LIBRARY_ENABLE_UNSAFE_V1` unset on any hosted environment.
-4. A trusted operator must explicitly provision the OAuth subject and branch
-   grants in backend DB; no self-registration or anonymous access is supplied.
-5. `npm run dev`. `npm run typecheck`, `npm run test` and `npm run build`
-   must pass before any Preview exposure. The Python CI suite is separate.
+- Root `/` offers a one-click `Explorar la biblioteca sin registrarte`
+  experience. The BFF generates a random UUIDv4, HMAC-signs a short-lived
+  HttpOnly + SameSite=Lax cookie and issues a separate, three-minute RS256
+  service token only to FastAPI. Secure/__Host cookies activate on HTTPS.
+- `/demo` resolves each visitor's PostgreSQL workspace and its own two
+  branches, members and inventory. The browser never holds the RSA key,
+  the API bearer token or a staff grant.
+- `/demo/[branchId]` displays database-backed catalogue, statistics,
+  local checkout and return (transacted, with copy locks and idempotency).
+- `/demo/[branchId]/transfers` lets the visitor request an interlibrary
+  loan, advance the outward transfer PREPARED → DISPATCHED → IN_TRANSIT →
+  RECEIVED, activate the loan, register the borrower's return and complete
+  the return transfer. The same original PostgreSQL lifecycle remains
+  authoritative; all foreign IDs fail object-level authorization.
+- Auth.js / GitHub OAuth is retained in `/login` as optional institutional
+  staff functionality, **not** required to use the public product. A GitHub
+  identity alone never grants a branch role.
 
-The `LIBRARY_JWT_ISSUER` and `LIBRARY_JWT_AUDIENCE` settings must match
-in BFF and backend. `LIBRARY_API_SIGNING_KEY_PKCS8` is NEVER a `NEXT_PUBLIC_*`
-variable. The backend must receive only its matching `LIBRARY_JWKS_JSON`.
-Never reuse examples as production credentials.
+## Verification already observed
 
-## Release gates not yet met
+- [Backend CI #45254202481](https://github.com/franciscovitar/library-network-api/actions/runs/45254202481):
+  183 passing tests with 160 PostgreSQL integrations, at
+  `1d58206713263728f0e246d97d3e7dc260e4809c`.
+- [Web CI #45254202098](https://github.com/franciscovitar/library-network-api/actions/runs/45254202098):
+  TypeScript, native tests and Next.js build PASS, same commit.
+- [Chromium E2E #45254202312](https://github.com/franciscovitar/library-network-api/actions/runs/45254202312):
+  2 real browser tests PASS (local circulation + full interlibrary flow),
+  using disposable PostgreSQL 17 and synthetic service keys, same commit.
+- Any subsequent commit needs its own new CI readback. Those results do
+  **not** establish production/HTTPS deployment, rate-limit effectiveness
+  or real institutional readiness.
 
-- OAuth credentials and BFF service-key lifecycle not provisioned/rotated/tested.
-- No approved organization/tenant model or visitor-isolated demo workspaces.
-- No enrollment/revocation UI, audit log, full rate-limit system or policy
-  for protecting real library members' personal data.
-- No real-browser QA, accessibility audit, QA deployment, public release or
-  real institutional onboarding.
-- The interlibrary transfer UI is pending; do not offer a fake button.
+## Development without real user credentials
 
-For methodology see `../docs/product/LIBRARY_NETWORK_BLUEPRINT_20261123.md`
-and `../docs/adr/0004-staff-authorization.md`.
+1. Node.js 22+, `cd web && npm ci`. No `NEXT_PUBLIC_*` secrets.
+2. Backend: disposable PostgreSQL and Alembic migrations; see repository
+   `README.md`. Keep unsafe V1 access disabled outside disposable local tests.
+3. Set backend `LIBRARY_JWKS_JSON` public key plus issuer/audience and
+   BFF `LIBRARY_API_SIGNING_KEY_PKCS8` private key + matching kid in
+   ignored local environment. Also set a **separate**
+   `LIBRARY_GUEST_COOKIE_SECRET` (>=32 unpredictable characters),
+   `LIBRARY_API_URL` (HTTPS in production), issuer and audience.
+   Never copy credentials from CI or commit/paste keys into conversations.
+4. Run `npm run dev`, `npm run typecheck`, `npm run test`,
+   `npm run build`. Browser E2E runs separately under `qa/browser/`.
+5. GitHub OAuth client credentials are optional and only necessary when
+   explicitly testing the private staff path.
 
-## Public visitor implementation (not deployed)
+## Blockers before public release
 
-- `/home` landing (root `/`) has a no-signup start button; the Server Action `/demo/actions.ts` generates a random UUIDv4 guest subject and initializes the PostgreSQL workspace through signed BFF-to-FastAPI token.
-- `web/lib/guest-capability.ts` HMAC signs session identity with dedicated `LIBRARY_GUEST_COOKIE_SECRET` (min 32 characters, server-side only). An HttpOnly same-site cookie protects the capability; HTTPS sets Secure and __Host- prefix. No localStorage JWT.
-- `/demo` selects an authorized synthetic branch; `/demo/[branchId]` shows real PostgreSQL summary, catalogue, member/copy selection, checkout and check-in via Server Actions.
-- Backend grants guest access strictly by server-side `demo_workspaces` associations, not by browser-supplied numeric IDs or roles.
-- Staff OAuth remains separately available for an eventual institutional admin product; do not set it up merely so recruiters can browse.
-- Release blockers remain explicit in `../docs/product/IMPLEMENTATION_LOG_20261123.md`. The 24-hour cookie/workspace access expiry does **not** yet delete all historical rows. Implement an audited cleanup before deployment.
+- **Abuse:** global PostgreSQL caps currently allow 60 new guest spaces/hr,
+  300 active, 25 loans per workspace; trusted-edge/IP/bot limiting and
+  budget/cost review are still outstanding. WAF billable features need approval.
+- **Retention:** the cleanup CLI is implemented, transactional and dry-run by
+  default; a safe **automatic scheduler is NOT yet connected**. Guests' access
+  expires after 24h, but data removal requires the cleanup job.
+- **Platform:** actual HTTPS, key management/rotation, hosted Python API and
+  PostgreSQL, monitoring, accessibility/mobile checks, guest reset and
+  Production hardening need a separate, authorized QA environment.
+- **Merge:** an existing Vercel Git-linked `library-network-showcase` project
+  may redeploy when `main` moves. Do not merge until that risk is handled.
+
+Sources: [ADR 0005](../docs/adr/0005-nextjs-bff-identity.md),
+[ADR 0006](../docs/adr/0006-guest-isolation.md), product blueprint and
+the original GitHub Actions checks. Tests are not proof of a public release.
