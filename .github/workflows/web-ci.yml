@@ -31,13 +31,11 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v4.4.0
         with:
           node-version: "22"
-      - name: Install (lockfile to be added after initial dependency spike)
-        run: npm install --no-audit --no-fund
+      - name: Install exactly locked dependency graph
+        run: npm ci --no-audit --no-fund
       - name: Server-side input tests
         run: npm run test
       - name: TypeScript
         run: npm run typecheck
       - name: Next.js production build
         run: npm run build
-      - name: Export npm lockfile for pinned dependency checkpoint
-        run: sed 's/^/LN_LOCK_JSON:/' package-lock.json

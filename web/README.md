@@ -26,7 +26,7 @@ This does **not** claim public availability or a browser E2E result.
 
 ## Development and safe configuration
 
-1. `cd web && npm install` (Node.js 22 or newer). No external deployment.
+1. `cd web && npm ci` (Node.js 22 or newer). Dependencies are pinned in `package-lock.json` and verified by GitHub Actions; no external deployment.
 2. Copy `.env.example` to an ignored `.env.local`. Supply **your own**
    GitHub OAuth application credentials in local environment **without putting
    them in chat or GitHub**.
