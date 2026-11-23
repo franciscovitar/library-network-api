@@ -103,9 +103,7 @@ def issue_local_loan(
     response: Response,
     factory: Factory,
     now: Now,
-    idempotency_key: Annotated[
-        str, Header(alias="Idempotency-Key", min_length=1, max_length=128)
-    ],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
 ):
     with factory.begin() as session:
         loan, created = create_local_loan(
