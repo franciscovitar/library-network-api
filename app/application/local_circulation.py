@@ -15,7 +15,13 @@ from app.application.locks import copy_id_of_loan, lock_copy, lock_loan
 from app.application.request_loan import _claim_idempotency_key
 from app.domain.errors import ConflictError, NotFoundError
 from app.domain.rules import LOAN_PERIOD, canonical_request_hash
-from app.domain.states import CopyStatus, IdempotentOperation, LoanKind, LoanStatus, PhysicalCondition
+from app.domain.states import (
+    CopyStatus,
+    IdempotentOperation,
+    LoanKind,
+    LoanStatus,
+    PhysicalCondition,
+)
 from app.persistence.models import Branch, IdempotencyRecord, Loan, Member
 
 OPERATION = IdempotentOperation.LOCAL_REQUEST
