@@ -100,7 +100,7 @@ export default async function GuestDashboard({
               {!loan && <p className="empty-prompt">Podés consultar el préstamo creado en el paso anterior.</p>}
             </section>
           </div>
-          <div className="notice"><strong>Tu espacio es temporal</strong><span>Los datos son sintéticos. Este entorno conserva tus operaciones por un máximo de 24 horas y no permite acceder al espacio de otra persona. La limpieza automática todavía requiere validación antes de una publicación.</span></div>
+          <div className="notice"><strong>Tu espacio es temporal</strong><span>Los datos son sintéticos. Tu acceso vence en 24 horas; las operaciones son persistentes mientras el espacio está activo. La limpieza de registros vencidos todavía debe implementarse antes de publicar.</span></div>
         </div>
       </main>
     </div>

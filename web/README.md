@@ -1,5 +1,5 @@
 # Library Network — Operations web (development)
-> **Owner-approved product decision, 23 Nov 2026:** the default public experience MUST NOT require OAuth. See [no-login guest product decision](../docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). This README still describes the existing staff-only slice; guest isolation and the frictionless entry path are being developed. No public deploy authorized.\n\n
+> **Owner-approved product decision, 23 Nov 2026:** the public product must not require OAuth. [Canonical decision](../docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). The branch now includes anonymous guest bootstrap and isolated PostgreSQL-backed operations at `/demo` via signed server-side cookies and BFF JWT. This is **build-tested development code only, NOT DEPLOYED**, and needs IP rate limits, cleanup and real-browser E2E before public access. Staff GitHub OAuth is optional secondary admin access.\n\n
 **Status:** Unreleased feature branch. Next.js App Router UI/BFF is being
 built on the **real** FastAPI + PostgreSQL backend, not on `showcase/` fixtures.
 This does **not** claim public availability or a browser E2E result.
@@ -55,3 +55,12 @@ Never reuse examples as production credentials.
 
 For methodology see `../docs/product/LIBRARY_NETWORK_BLUEPRINT_20261123.md`
 and `../docs/adr/0004-staff-authorization.md`.
+
+## Public visitor implementation (not deployed)
+
+- `/home` landing (root `/`) has a no-signup start button; the Server Action `/demo/actions.ts` generates a random UUIDv4 guest subject and initializes the PostgreSQL workspace through signed BFF-to-FastAPI token.
+- `web/lib/guest-capability.ts` HMAC signs session identity with dedicated `LIBRARY_GUEST_COOKIE_SECRET` (min 32 characters, server-side only). An HttpOnly same-site cookie protects the capability; HTTPS sets Secure and __Host- prefix. No localStorage JWT.
+- `/demo` selects an authorized synthetic branch; `/demo/[branchId]` shows real PostgreSQL summary, catalogue, member/copy selection, checkout and check-in via Server Actions.
+- Backend grants guest access strictly by server-side `demo_workspaces` associations, not by browser-supplied numeric IDs or roles.
+- Staff OAuth remains separately available for an eventual institutional admin product; do not set it up merely so recruiters can browse.
+- Release blockers remain explicit in `../docs/product/IMPLEMENTATION_LOG_20261123.md`. The 24-hour cookie/workspace access expiry does **not** yet delete all historical rows. Implement an audited cleanup before deployment.
