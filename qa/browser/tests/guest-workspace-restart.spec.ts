@@ -7,7 +7,7 @@ test("starting another anonymous library preserves prior PostgreSQL records with
     const page = await activeContext.newPage();
     await page.goto("/");
     await page.getByRole("button", { name: /Explorar la biblioteca sin registrarte/ }).click();
-    await expect(page).toHaveURL(/\\/demo\\/\\d+(?:\\?|$)/);
+    await expect(page).toHaveURL(/\/demo\/\d+(?:\?|$)/);
     const previousUrl = new URL(page.url()).origin + new URL(page.url()).pathname;
 
     await page.getByRole("button", { name: /Registrar préstamo/ }).click();
@@ -19,7 +19,7 @@ test("starting another anonymous library preserves prior PostgreSQL records with
     if (!originalCookie) throw new Error("Original browser capability missing");
 
     await page.getByRole("button", { name: "Crear otra biblioteca temporal" }).click();
-    await expect(page).toHaveURL(/\\/demo\\/\\d+(?:\\?|$)/);
+    await expect(page).toHaveURL(/\/demo\/\d+(?:\?|$)/);
     expect(new URL(page.url()).pathname).not.toBe(new URL(previousUrl).pathname);
     await expect(page.locator(".stat-grid .stat-card").first().locator(".stat-value")).toHaveText("0");
 
