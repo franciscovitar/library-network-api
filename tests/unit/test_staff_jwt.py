@@ -33,7 +33,11 @@ def rsa_auth(monkeypatch):
         }
         payload.update(overrides)
         if algorithm == "HS256":
-            return jwt.encode(payload, "untrusted-client-secret-with-sufficient-length-for-a-test", algorithm="HS256")
+            return jwt.encode(
+                payload,
+                "untrusted-client-secret-with-sufficient-length-for-a-test",
+                algorithm="HS256",
+            )
         return jwt.encode(payload, private, algorithm=algorithm, headers={"kid": kid})
 
     return mint
