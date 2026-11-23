@@ -1,6 +1,6 @@
 # Library Network — Release and merge gates (2026-11-23)
 
-**Scope:** PR #4, `feat/library-network-product-foundation-20261123` — engineering draft.  
+**Scope:** PR #4 merged into `main` as `3c514476e1ce6f6036fab2df25174317f4eb1334` (code only; no public release). Follow-up development stays in an isolated branch.  
 **Canonical product decision:** [public, real, without login](../product/DECISION_PUBLIC_NO_LOGIN_20261123.md).  
 **PAS reference:** `franciscovitar/personal-ai-system`, main `545aa9def3993be579a333b750739c3558441218`.  
 **Execution authority for deployment / external cost:** NONE. **Do not treat test success as production readiness.**
@@ -13,7 +13,7 @@
 | Frontend compilation and TypeScript | [Web CI #45254202098](https://github.com/franciscovitar/library-network-api/actions/runs/45254202098) SUCCESS, same commit | Next.js production build and static/type validation |
 | Recruiter no-login journey | [Browser CI #45254202312](https://github.com/franciscovitar/library-network-api/actions/runs/45254202312) SUCCESS: 2 Chromium tests in disposable CI | Real HTTP through Next.js + FastAPI + PostgreSQL, local loopback only |
 | Expired guest cleanup after interlibrary transfer | New test `tests/integration/test_guest_cleanup.py` | **Latest HEAD CI result must be verified separately** |
-| Public HTTPS Preview, uptime, WAF, IP throttling, guest reset, cleanup scheduler | NOT_RUN / NOT_CONFIGURED | Explicit release blockers |
+| Public HTTPS Preview, uptime, WAF, IP throttling, cleanup scheduler | NOT_RUN / NOT_CONFIGURED | Explicit release blockers |
 | Portfolio public link, production deploy and real client onboarding | NOT_DONE | No automatic claims |
 
 The older static `showcase/` has no authority to replace the real operational `web/` application.
@@ -112,3 +112,19 @@ revert the deployment veto in a dedicated change.
   https://vercel.com/docs/cron-jobs
 - OWASP API authorization (BOLA):
   https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
+
+## Follow-up — create a fresh anonymous workspace (development only)
+
+- The server action `restartDemo` calls the existing transaction-backed guest
+  creation endpoint with a new UUIDv4 subject, **then** replaces the signed,
+  HttpOnly visitor cookie only after a successful response. If the PostgreSQL
+  global creation/active-workspace budget rejects the request (429), the
+  existing browser session remains intact; there is no client-only reset.
+- The guest dashboard provides `Crear otra biblioteca temporal`. Its text
+  explicitly distinguishes **switching to a fresh workspace** from deleting
+  or revoking the former one. Expired records remain subject to the existing
+  safe cleanup process, which has NOT been scheduled.
+- A Chromium test checks that a borrower can open a new, isolated guest
+  library while the prior guest workspace and loan persist independently.
+- Verification state: **PENDING CI on the follow-up commit**. No public
+  hosting, live database, secrets, WAF, cron, budget or Production changes.
