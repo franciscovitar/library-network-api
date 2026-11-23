@@ -40,10 +40,15 @@ deployment remained the previous one. This supports that the project reads the
 configuration from `showcase/vercel.json`, but does not guarantee that unrelated
 CLI/API/manual deploy sources cannot run.
 
-**Automated guard:** `.github/workflows/showcase-merge-safety.yml` checks
-that the PR changes NO static `showcase/` files other than the precise Git
-deployment veto, and that the existing headers remain unchanged. It succeeded
-on the probe commit. Recheck every HEAD before merge.
+**Automated guard:** PR #6 replaces the earlier branch-specific check with a
+guard on every PR targeting `main`. It passes when `showcase/` is unchanged;
+otherwise it allows only additions of literal branch vetoes (`false`) or
+turning an enabled branch into a veto in `showcase/vercel.json`. Existing
+vetoes and `main:false` must remain; content/headers, other config, executable
+mode, symlink mode, and wildcard branch rules are rejected. Twelve focused
+unit tests exercise the policy. The check runs after the PR event and is not
+a pre-deployment control: read back Vercel's branch veto before each push and
+confirm no deployment before merge.
 
 **Code merge gate:** allow merge only with Python/PostgreSQL, Next.js, browser
 and showcase-merge-safety checks all PASS on the exact head, unchanged Vercel

@@ -1,14 +1,17 @@
 name: Merge Safety - Preserve Existing Showcase
 
+# This CI guard runs after a PR event. Prevent automatic deploys before pushing by
+# verifying the project's Vercel branch veto and deployment history separately.
 on:
   pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   protect-public-showcase:
-    if: github.event.pull_request.head.ref == 'feat/library-network-qa-prep-20261123'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -18,41 +21,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify PR remains isolated from the published static showcase
+      - name: Verify changes cannot alter the published showcase
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          import subprocess
-
-          base = os.environ["BASE_SHA"]
-          head = os.environ["HEAD_SHA"]
-          if os.environ["BASE_REF"] != "main":
-              raise SystemExit("Only a PR against main is eligible for this safety gate")
-          def git(*args):
-              return subprocess.check_output(["git", *args], text=True).strip()
-          def source(revision, path):
-              return git("show", f"{revision}:{path}")
-          changes = git("diff", "--name-only", base, head, "--", "showcase")
-          changed_files = [x for x in changes.splitlines() if x]
-          if changed_files != ["showcase/vercel.json"]:
-              raise SystemExit(f"Unexpected hosted showcase changes: {changed_files}")
-
-          original = json.loads(source(base, "showcase/vercel.json"))
-          proposed = json.loads(source(head, "showcase/vercel.json"))
-          expected = dict(original)
-          expected["git"] = {"deploymentEnabled": {"main": False, "feat/library-network-product-foundation-20261123": False, "feat/library-network-qa-prep-20261123": False}}
-          if proposed != expected:
-              raise SystemExit("Showcase headers/behavior changed, or Vercel gate was modified")
-
-          if git("cat-file", "-e", f"{base}:showcase/index.html") != "":
-              raise SystemExit("Unexpected index.html data")
-          if source(base, "showcase/index.html") != source(head, "showcase/index.html"):
-              raise SystemExit("Static index content changed")
-          print("PASS: showcase content identical; only explicit Git auto-deploy gates added.")
-          print("This verifies repository inputs, not the live Vercel project configuration.")
-          PY
+        run: python scripts/ci/check_showcase_merge_safety.py

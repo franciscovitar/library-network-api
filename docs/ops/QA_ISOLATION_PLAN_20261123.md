@@ -64,6 +64,25 @@ deployment to `library-network-showcase`, its Production domain, or an existing
 database. Keep the QA URL private/protected while evaluating it; no public
 portfolio link until the abuse gates pass.
 
+## Permanent showcase guard in PR #6
+
+`.github/workflows/showcase-merge-safety.yml` runs for every PR targeting
+`main`, without a PR-number or branch condition. It passes if the PR leaves
+`showcase/` unchanged. If the directory changes, only `showcase/vercel.json`
+may differ, and only under `git.deploymentEnabled`: exact branch entries may
+be added with `false`, or an existing `true` may become `false`. Existing
+`false` vetoes and `main:false` are mandatory; wildcard keys, removal or
+re-enabling of vetoes, config headers or other settings, content changes,
+symlink/executable modes, duplicate JSON keys, and invalid JSON fail closed.
+Twelve unit cases cover safe changes and rejection paths.
+
+This is a post-PR CI check and cannot prevent a Git-triggered deployment before
+CI starts. Before publishing a branch, first inspect the connected Vercel
+project and its current Production deployment, verify that the exact branch
+has a `git.deploymentEnabled` veto in its committed `showcase/vercel.json`,
+then read deployments again after the push. The CI guard does not replace that
+preventive readback.
+
 ### Controls required before creating hosted QA
 
 1. Owner reviews the target Vercel team plan, current usage, WAF rate-limit
