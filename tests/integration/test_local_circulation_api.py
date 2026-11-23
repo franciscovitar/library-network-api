@@ -1,6 +1,8 @@
 """Local circulation against real PostgreSQL and the actual FastAPI route handlers."""
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
@@ -140,3 +142,40 @@ def test_openapi_exposes_local_operations():
     paths = client.get("/openapi.json").json()["paths"]
     assert "post" in paths["/api/v1/loans/local"]
     assert "post" in paths["/api/v1/loans/{loan_id}/local-return"]
+
+
+def test_concurrent_local_and_interlibrary_requests_share_the_copy_lock(api, app_engine):
+    barrier = Barrier(2)
+
+    def submit(kind):
+        with TestClient(app, raise_server_exceptions=False) as client:
+            barrier.wait(timeout=20)
+            if kind == "local":
+                return issue(client, key="race-local", member=1)
+            return request_loan(client, "race-inter", member=2, copy=1, dest=2)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(submit, ["local", "interlibrary"]))
+    assert sorted(result.status_code for result in outcomes) == [201, 409]
+    assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
+    assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 1
+    assert scalar(app_engine, "SELECT status FROM copies WHERE id = 1") in {
+        "ON_LOAN",
+        "RESERVED",
+    }
+
+
+def test_same_local_key_concurrently_creates_only_one_loan(api, app_engine):
+    barrier = Barrier(2)
+
+    def submit(_index):
+        with TestClient(app, raise_server_exceptions=False) as client:
+            barrier.wait(timeout=20)
+            return issue(client, key="parallel-replay")
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(submit, range(2)))
+    assert sorted(result.status_code for result in outcomes) == [200, 201]
+    assert outcomes[0].json()["id"] == outcomes[1].json()["id"]
+    assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
+    assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 1
