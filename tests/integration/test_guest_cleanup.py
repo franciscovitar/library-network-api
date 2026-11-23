@@ -120,3 +120,63 @@ def test_cleanup_rejects_invalid_input_without_mutating(api, app_engine):
         with Session(app_engine) as session, session.begin():
             cleanup_expired_workspaces(session, now=datetime(2026, 11, 23), apply=True)
     assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1
+
+
+def test_cleanup_expired_interlibrary_transfers_and_events_without_cross_data(api, app_engine):
+    """The retention job must remove transfer history and only the expired visitor's rows."""
+    expired = f"guest:{uuid4()}"
+    other = f"guest:{uuid4()}"
+    old_profile = start(api, expired)
+    new_profile = start(api, other)
+    origin, destination = [b["branch_id"] for b in old_profile["branches"]]
+    other_branch = new_profile["branches"][0]["branch_id"]
+
+    app.dependency_overrides[verified_subject] = lambda: expired
+    member = api.get(f"{GUEST}/members").json()[0]["id"]
+    copy = api.get(f"{GUEST}/branches/{origin}/copies").json()["items"][0]["id"]
+    requested = api.post(
+        f"{GUEST}/loans/interlibrary",
+        json={"member_id": member, "copy_id": copy, "destination_branch_id": destination},
+        headers={"Idempotency-Key": "cleanup-interlibrary"},
+    )
+    assert requested.status_code == 201, requested.text
+    loan = requested.json()
+    outbound = loan["transfers"][0]["id"]
+    for state in ("DISPATCHED", "IN_TRANSIT", "RECEIVED"):
+        result = api.post(
+            f"{GUEST}/transfers/{outbound}/transitions", json={"next_status": state}
+        )
+        assert result.status_code == 200, result.text
+    activated = api.post(f"{GUEST}/loans/{loan['id']}/activate")
+    assert activated.status_code == 200, activated.text
+    gave_back = api.post(
+        f"{GUEST}/loans/{loan['id']}/return", json={"condition": "GOOD"}
+    )
+    assert gave_back.status_code == 200, gave_back.text
+    returned = next(t["id"] for t in gave_back.json()["transfers"] if t["direction"] == "RETURN")
+    for state in ("DISPATCHED", "IN_TRANSIT", "RECEIVED"):
+        moved = api.post(
+            f"{GUEST}/transfers/{returned}/transitions", json={"next_status": state}
+        )
+        assert moved.status_code == 200, moved.text
+
+    assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
+    assert scalar(app_engine, "SELECT count(*) FROM transfers") == 2
+    assert scalar(app_engine, "SELECT count(*) FROM transfer_events") == 8
+    expire(app_engine, expired)
+    with Session(app_engine) as session, session.begin():
+        preview = cleanup_expired_workspaces(session, now=datetime.now(UTC), apply=False)
+    assert len(preview) == 1
+    assert preview[0]["loans"] == 1 and preview[0]["transfers"] == 2
+
+    with Session(app_engine) as session, session.begin():
+        removed = cleanup_expired_workspaces(session, now=datetime.now(UTC), apply=True)
+    assert removed == preview
+    assert scalar(app_engine, "SELECT count(*) FROM loans") == 0
+    assert scalar(app_engine, "SELECT count(*) FROM transfers") == 0
+    assert scalar(app_engine, "SELECT count(*) FROM transfer_events") == 0
+    assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 0
+    assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1
+    app.dependency_overrides[verified_subject] = lambda: other
+    assert api.get(f"{GUEST}/branches/{other_branch}/overview").status_code == 200
+    assert api.get(f"{GUEST}/branches/{other_branch}/copies").json()["total"] == 3
