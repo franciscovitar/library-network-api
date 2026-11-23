@@ -107,9 +107,7 @@ def _profile(session, workspace) -> dict:
 @router.post("/start", response_model=GuestProfile, status_code=201)
 def start_demo(response: Response, subject: Subject, factory: Factory):
     with factory.begin() as session:
-        workspace, created = start_guest_workspace(
-            session, subject=subject, now=utc_now()
-        )
+        workspace, created = start_guest_workspace(session, subject=subject, now=utc_now())
         result = _profile(session, workspace)
     response.status_code = 201 if created else 200
     return result
@@ -143,9 +141,7 @@ def guest_catalog(
     with factory() as session:
         workspace = guest_workspace(session, subject, utc_now())
         owned_branch(session, workspace, branch_id)
-        available = func.count(Copy.id).filter(
-            Copy.status == CopyStatus.AVAILABLE.value
-        )
+        available = func.count(Copy.id).filter(Copy.status == CopyStatus.AVAILABLE.value)
         statement = (
             select(
                 Book.id,
@@ -172,9 +168,7 @@ def guest_catalog(
             )
         if available_only:
             statement = statement.having(available > 0)
-        total = session.scalar(
-            select(func.count()).select_from(statement.subquery())
-        ) or 0
+        total = session.scalar(select(func.count()).select_from(statement.subquery())) or 0
         rows = session.execute(
             statement.order_by(Book.title, Book.id).limit(limit).offset(offset)
         ).mappings()
@@ -219,9 +213,7 @@ def guest_copies(
                     Book.author.icontains(q, autoescape=True),
                 )
             )
-        rows = session.execute(
-            stmt.order_by(Book.title, Copy.code).limit(50)
-        ).mappings()
+        rows = session.execute(stmt.order_by(Book.title, Copy.code).limit(50)).mappings()
         items = [dict(item) for item in rows]
         return {"items": items, "total": len(items)}
 
@@ -253,9 +245,7 @@ def guest_issue(
     response: Response,
     subject: Subject,
     factory: Factory,
-    idempotency_key: Annotated[
-        str, Header(alias="Idempotency-Key", min_length=1, max_length=128)
-    ],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
 ):
     with factory.begin() as session:
         workspace = guest_workspace(session, subject, utc_now(), lock=True)
@@ -265,9 +255,7 @@ def guest_issue(
         scoped_key = sha256(
             f"guest:{subject}:{body.branch_id}:{idempotency_key}".encode()
         ).hexdigest()
-        ensure_guest_loan_quota(
-            session, workspace=workspace, scoped_key=scoped_key
-        )
+        ensure_guest_loan_quota(session, workspace=workspace, scoped_key=scoped_key)
         loan, created = create_local_loan(
             session,
             member_id=body.member_id,

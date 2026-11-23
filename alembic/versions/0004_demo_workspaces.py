@@ -63,7 +63,8 @@ def upgrade() -> None:
         sa.Column("member_id", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_demo_workspace_members")),
         sa.ForeignKeyConstraint(
-            ["workspace_id"], ["demo_workspaces.id"],
+            ["workspace_id"],
+            ["demo_workspaces.id"],
             name=op.f("fk_demo_workspace_members_workspace_id_demo_workspaces"),
         ),
         sa.ForeignKeyConstraint(
@@ -91,13 +92,9 @@ def downgrade() -> None:
                 "Downgrade blocked: guest workspace data exists. Use an approved "
                 "cleanup/backup workflow before removing the schema."
             )
-    op.drop_index(
-        "ix_demo_workspace_members_workspace_id", table_name="demo_workspace_members"
-    )
+    op.drop_index("ix_demo_workspace_members_workspace_id", table_name="demo_workspace_members")
     op.drop_table("demo_workspace_members")
-    op.drop_index(
-        "ix_demo_workspace_branches_workspace_id", table_name="demo_workspace_branches"
-    )
+    op.drop_index("ix_demo_workspace_branches_workspace_id", table_name="demo_workspace_branches")
     op.drop_table("demo_workspace_branches")
     op.drop_index("ix_demo_workspaces_expires_at", table_name="demo_workspaces")
     op.drop_table("demo_workspaces")

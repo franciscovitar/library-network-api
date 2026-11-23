@@ -111,9 +111,7 @@ def owned_copy(session: Session, branch_id: int, copy_id: int) -> Copy:
     return copy
 
 
-def owned_loan(
-    session: Session, workspace: DemoWorkspace, loan_id: int
-) -> Loan:
+def owned_loan(session: Session, workspace: DemoWorkspace, loan_id: int) -> Loan:
     loan = session.scalar(
         select(Loan)
         .join(DemoWorkspaceBranch, DemoWorkspaceBranch.branch_id == Loan.destination_branch_id)
@@ -144,9 +142,7 @@ def start_guest_workspace(
         text("SELECT pg_advisory_xact_lock(hashtextextended(:subject, 20261123))"),
         {"subject": subject},
     )
-    workspace = session.scalar(
-        select(DemoWorkspace).where(DemoWorkspace.subject == subject)
-    )
+    workspace = session.scalar(select(DemoWorkspace).where(DemoWorkspace.subject == subject))
     if workspace is not None:
         if workspace.expires_at <= now or not workspace.active:
             raise HTTPException(status_code=410, detail="Guest workspace expired")
@@ -166,19 +162,14 @@ def start_guest_workspace(
     session.add_all(branches)
     session.flush()
     session.add_all(
-        DemoWorkspaceBranch(workspace_id=workspace.id, branch_id=branch.id)
-        for branch in branches
+        DemoWorkspaceBranch(workspace_id=workspace.id, branch_id=branch.id) for branch in branches
     )
 
-    members = [
-        Member(code=f"D-{digest[:20]}-M{i:02d}", enabled=True)
-        for i in range(1, 4)
-    ]
+    members = [Member(code=f"D-{digest[:20]}-M{i:02d}", enabled=True) for i in range(1, 4)]
     session.add_all(members)
     session.flush()
     session.add_all(
-        DemoWorkspaceMember(workspace_id=workspace.id, member_id=member.id)
-        for member in members
+        DemoWorkspaceMember(workspace_id=workspace.id, member_id=member.id) for member in members
     )
 
     books = [
@@ -224,10 +215,11 @@ def ensure_guest_loan_quota(
     if previous is not None:
         return
     branches = workspace_branch_ids(session, workspace)
-    created_count = session.scalar(
-        select(func.count())
-        .select_from(Loan)
-        .where(Loan.destination_branch_id.in_(branches))
-    ) or 0
+    created_count = (
+        session.scalar(
+            select(func.count()).select_from(Loan).where(Loan.destination_branch_id.in_(branches))
+        )
+        or 0
+    )
     if created_count >= MAX_GUEST_LOANS:
         raise HTTPException(status_code=429, detail="Workspace lending limit reached")

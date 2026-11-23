@@ -80,30 +80,27 @@ def test_two_guests_are_real_isolated_workspaces(api, app_engine):
     assert {m["id"] for m in a_members}.isdisjoint(m["id"] for m in b_members)
     assert {c["id"] for c in a_copies}.isdisjoint(c["id"] for c in b_copies)
 
-    issued = guest_issue(
-        api, a, a_branches[0], a_members[0]["id"], a_copies[0]["id"], "test-1"
-    )
+    issued = guest_issue(api, a, a_branches[0], a_members[0]["id"], a_copies[0]["id"], "test-1")
     assert issued.status_code == 201, issued.text
     loan_id = issued.json()["id"]
     as_guest(b)
     assert api.get(f"{BASE}/loans/{loan_id}").status_code == 404
-    assert api.post(
-        f"{BASE}/loans/{loan_id}/local-return",
-        json={"branch_id": b_branches[0], "condition": "GOOD"},
-    ).status_code == 404
+    assert (
+        api.post(
+            f"{BASE}/loans/{loan_id}/local-return",
+            json={"branch_id": b_branches[0], "condition": "GOOD"},
+        ).status_code
+        == 404
+    )
 
     as_guest(a)
     during = api.get(f"{BASE}/branches/{a_branches[0]}/overview").json()
     assert during["active_loans"] == 1
     assert during["available_copies"] == 2
-    reread = guest_issue(
-        api, a, a_branches[0], a_members[0]["id"], a_copies[0]["id"], "test-1"
-    )
+    reread = guest_issue(api, a, a_branches[0], a_members[0]["id"], a_copies[0]["id"], "test-1")
     assert reread.status_code == 200
     assert reread.json()["id"] == loan_id
-    changed = guest_issue(
-        api, a, a_branches[0], a_members[1]["id"], a_copies[0]["id"], "test-1"
-    )
+    changed = guest_issue(api, a, a_branches[0], a_members[1]["id"], a_copies[0]["id"], "test-1")
     assert changed.status_code == 409
 
     as_guest(b)
@@ -164,16 +161,10 @@ def test_guest_new_loan_quota_preserves_exact_replay(api, app_engine, monkeypatc
     as_guest(subject)
     members = api.get(f"{BASE}/members").json()
     copies = api.get(f"{BASE}/branches/{branch}/copies").json()["items"]
-    first = guest_issue(
-        api, subject, branch, members[0]["id"], copies[0]["id"], "quota-one"
-    )
+    first = guest_issue(api, subject, branch, members[0]["id"], copies[0]["id"], "quota-one")
     assert first.status_code == 201, first.text
-    replay = guest_issue(
-        api, subject, branch, members[0]["id"], copies[0]["id"], "quota-one"
-    )
+    replay = guest_issue(api, subject, branch, members[0]["id"], copies[0]["id"], "quota-one")
     assert replay.status_code == 200
-    other = guest_issue(
-        api, subject, branch, members[1]["id"], copies[1]["id"], "quota-two"
-    )
+    other = guest_issue(api, subject, branch, members[1]["id"], copies[1]["id"], "quota-two")
     assert other.status_code == 429
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
