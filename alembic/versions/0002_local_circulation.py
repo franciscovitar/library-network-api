@@ -26,7 +26,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         op.f("ck_loans_kind_valid"), "loans", "kind IN ('INTERLIBRARY', 'LOCAL')"
     )
-    op.drop_constraint("ck_loans_branches_differ", "loans", type_="check")
+    op.drop_constraint(op.f("ck_loans_branches_differ"), "loans", type_="check")
     op.create_check_constraint(
         op.f("ck_loans_branches_differ"),
         "loans",
@@ -59,9 +59,9 @@ def downgrade() -> None:
         "idempotency_records",
         "operation IN ('INTERLIBRARY_REQUEST')",
     )
-    op.drop_constraint("ck_loans_branches_differ", "loans", type_="check")
+    op.drop_constraint(op.f("ck_loans_branches_differ"), "loans", type_="check")
     op.create_check_constraint(
         op.f("ck_loans_branches_differ"), "loans", "origin_branch_id <> destination_branch_id"
     )
-    op.drop_constraint("ck_loans_kind_valid", "loans", type_="check")
+    op.drop_constraint(op.f("ck_loans_kind_valid"), "loans", type_="check")
     op.drop_column("loans", "kind")
