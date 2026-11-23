@@ -25,6 +25,8 @@ from app.api.schemas import (
     TransitionIn,
 )
 from app.application import utc_now
+from app.application.activate_loan import activate_loan
+from app.application.advance_transfer import advance_transfer
 from app.application.guest_workspace import (
     ensure_guest_loan_quota,
     guest_workspace,
@@ -34,11 +36,9 @@ from app.application.guest_workspace import (
     owned_member,
     owned_transfer,
     owned_workspace_copy,
-    workspace_branch_ids,
     start_guest_workspace,
+    workspace_branch_ids,
 )
-from app.application.activate_loan import activate_loan
-from app.application.advance_transfer import advance_transfer
 from app.application.local_circulation import create_local_loan, return_local_loan
 from app.application.request_loan import request_interlibrary_loan
 from app.application.return_loan import return_loan
