@@ -18,29 +18,46 @@
 
 The older static `showcase/` has no authority to replace the real operational `web/` application.
 
-## Critical merge isolation — current Vercel project
+## Verified merge isolation — existing Vercel showcase
 
-Read-only Vercel inspection confirmed that the `genova` team has the linked project
-`library-network-showcase` (project `prj_0EdnHepKcZstjEYcwLYxi75gY9NI`) with the
-existing `library-network-showcase-git-main-genova.vercel.app` domain. The GitHub
-`main` branch of this repository is still the old V1 base
-`0f583edf3a4d80cb05acc99237d2a432b8302abf`.
+Read-only inspection confirmed `genova/library-network-showcase` project
+`prj_0EdnHepKcZstjEYcwLYxi75gY9NI`, whose Production deployment originates
+from GitHub `main` at `0f583edf3a4d80cb05acc99237d2a432b8302abf`.
+The existing public showcase must remain intact independently from the real `web/`.
 
-**DO NOT MERGE PR #4 YET** without verified release isolation. An ordinary merge to
-`main` can trigger Vercel's Git integration, even if the new frontend lives in
-`web/`. The Vercel API's available project response does NOT prove a safe
-`rootDirectory` / build target or disabled production auto-deploy. A production
-site must not be mutated under a conditional merge authorization.
+**Prepared in feature branch only:** `showcase/vercel.json` retains its
+existing security headers and now includes Vercel's official
+[`git.deploymentEnabled`](https://vercel.com/docs/project-configuration/git-configuration)
+with `main:false`. The PR branch is also temporarily excluded for a direct
+probe; no Vercel settings/Production/domains/aliases/secrets were modified.
 
-Safe release alternatives to evaluate **before choosing** (all require explicit
-approval for platform changes):
+**Direct verification of this Vercel configuration path:** commit
+`54e0c20f5ca4eb5fea37233cc4d2355a786ee9f1` previously produced a READY
+preview `dpl_Cr5ttozwQ6C9ra8ZijET5jrF4ED4`. After adding the PR-branch
+veto, commit `b4ff4e83e65f1dbcf26d70737b71ca67da0d33dd` produced
+**no Vercel deployment** on subsequent readback, and the project's latest
+deployment remained the previous one. This supports that the project reads the
+configuration from `showcase/vercel.json`, but does not guarantee that unrelated
+CLI/API/manual deploy sources cannot run.
 
-- Preserve `library-network-showcase` unmodified and connect a **separate**
-  isolated QA/production project to the `web/` app after a backend hosting
-  decision; use branch-scoped previews and only later promote a reviewed build.
-- Or explicitly verify and safely reconfigure the old project/production
-  branch in Vercel before merging. A read-only inspection is not permission
-  to change it.
+**Automated guard:** `.github/workflows/showcase-merge-safety.yml` checks
+that the PR changes NO static `showcase/` files other than the precise Git
+deployment veto, and that the existing headers remain unchanged. It succeeded
+on the probe commit. Recheck every HEAD before merge.
+
+**Code merge gate:** allow merge only with Python/PostgreSQL, Next.js, browser
+and showcase-merge-safety checks all PASS on the exact head, unchanged Vercel
+Git veto, and current GitHub mergeability. Then read Vercel Production back
+and verify the known deployment remains assigned. This is **not** an approval
+to deploy the real application, rotate keys, write to live databases, or
+modify billing. The public new-app release still requires separate hosting,
+IP/bot protection, cleanup scheduling, isolated DB, secrets and HTTPS QA.
+
+**Rollback:** if Vercel unexpectedly publishes from Git after main moves,
+stop all further changes, inspect Production/deployment metadata and restore
+the previously known READY deployment through an explicitly authorized Vercel
+rollback. To resume future old-showcase automatic Git releases, review and
+revert the deployment veto in a dedicated change.
 
 ## Explicit outstanding release gates
 

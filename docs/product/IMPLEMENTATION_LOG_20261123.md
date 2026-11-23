@@ -107,3 +107,11 @@ The owner explicitly chose a **real publicly usable application without a login 
   limiting/cron options. Rate limiting may be billable and was NOT configured.
   Cleanup scheduler and real HTTPS deployment are NOT_DONE.
 - Handoff and explicit release gate: [RELEASE_READINESS_20261123.md](../ops/RELEASE_READINESS_20261123.md).
+
+## Git merge / old showcase isolation — 2026-11-23
+
+- Verified old Vercel Production source `main` = `0f583edf3a4d80cb05acc99237d2a432b8302abf`.
+- Added Vercel `git.deploymentEnabled` branch rules (`main:false` and current feature-branch:false) in `showcase/vercel.json`, while preserving the old headers.
+- Confirmed feature-branch Git auto-deploy suppression: probe `b4ff4e83e65f1dbcf26d70737b71ca67da0d33dd` had no Vercel deployment; latest deployment was still the READY preview of `54e0c20f5ca4eb5fea37233cc4d2355a786ee9f1`.
+- Added `showcase-merge-safety.yml` CI to validate exact showcase contents/config. No Production modification or platform settings write.
+- Explicit code merge and separate public app deployment gates: [release readiness](../ops/RELEASE_READINESS_20261123.md). Recheck all CI at current HEAD; previous tests do not certify new commits.

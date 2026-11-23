@@ -68,8 +68,7 @@ This is the real application built on FastAPI + PostgreSQL, **not** the old
 - **Platform:** actual HTTPS, key management/rotation, hosted Python API and
   PostgreSQL, monitoring, accessibility/mobile checks, guest reset and
   Production hardening need a separate, authorized QA environment.
-- **Merge:** an existing Vercel Git-linked `library-network-showcase` project
-  may redeploy when `main` moves. Do not merge until that risk is handled.
+- **Merge:** the old `library-network-showcase` has an explicit Git auto-deploy veto for `main`, plus an observed branch-skip probe and passing safety CI. Before merging, recheck all exact-head tests and the project settings; the real app remains NOT DEPLOYED.
 
 Sources: [ADR 0005](../docs/adr/0005-nextjs-bff-identity.md),
 [ADR 0006](../docs/adr/0006-guest-isolation.md), product blueprint and
