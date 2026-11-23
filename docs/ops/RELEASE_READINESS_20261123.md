@@ -40,10 +40,15 @@ deployment remained the previous one. This supports that the project reads the
 configuration from `showcase/vercel.json`, but does not guarantee that unrelated
 CLI/API/manual deploy sources cannot run.
 
-**Automated guard:** `.github/workflows/showcase-merge-safety.yml` checks
-that the PR changes NO static `showcase/` files other than the precise Git
-deployment veto, and that the existing headers remain unchanged. It succeeded
-on the probe commit. Recheck every HEAD before merge.
+**Automated guard:** PR #6 replaces the earlier branch-specific check with a
+guard on every PR targeting `main`. It passes when `showcase/` is unchanged;
+otherwise it allows only additions of literal branch vetoes (`false`) or
+turning an enabled branch into a veto in `showcase/vercel.json`. Existing
+vetoes and `main:false` must remain; content/headers, other config, executable
+mode, symlink mode, and wildcard branch rules are rejected. Twelve focused
+unit tests exercise the policy. The check runs after the PR event and is not
+a pre-deployment control: read back Vercel's branch veto before each push and
+confirm no deployment before merge.
 
 **Code merge gate:** allow merge only with Python/PostgreSQL, Next.js, browser
 and showcase-merge-safety checks all PASS on the exact head, unchanged Vercel
@@ -126,5 +131,21 @@ revert the deployment veto in a dedicated change.
   safe cleanup process, which has NOT been scheduled.
 - A Chromium test checks that a borrower can open a new, isolated guest
   library while the prior guest workspace and loan persist independently.
-- Verification state: **PENDING CI on the follow-up commit**. No public
-  hosting, live database, secrets, WAF, cron, budget or Production changes.
+- Verification state on the verified current `main` base: local Python/PostgreSQL
+  184 passed (161 integration + 23 unit), Web tests/typecheck/build PASS, and
+  local Chromium browser QA 4 passed. The follow-up was locally tested with a
+  disposable PostgreSQL 17 container. GitHub readback for this exact base has
+  no status checks or check runs. No public hosting, live database, real secrets,
+  WAF rule, cron, budget or Production change.
+
+## Continuation — isolated QA preparation (2026-11-23)
+
+- GitHub `main` rechecked at `327b56301c4b8a5f25b73b093b7025fad56922e4`;
+  local `work` starts from that commit. The Base64URL test correction is still
+  an uncommitted local change and is included in the isolated follow-up.
+- Vercel Production readback still identifies the old static showcase and its
+  known Production commit `0f583edf3a4d80cb05acc99237d2a432b8302abf`.
+- See [the isolated QA plan](QA_ISOLATION_PLAN_20261123.md) for the security
+  review, provider comparison, local evidence, and unprovisioned QA topology.
+- A new exact branch-name Vercel Git veto is included before publishing the
+  isolated branch; no Vercel settings or deployment were changed.
