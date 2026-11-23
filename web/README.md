@@ -1,5 +1,5 @@
 # Library Network — Operations web (development)
-
+> **Owner-approved product decision, 23 Nov 2026:** the default public experience MUST NOT require OAuth. See [no-login guest product decision](../docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). This README still describes the existing staff-only slice; guest isolation and the frictionless entry path are being developed. No public deploy authorized.\n\n
 **Status:** Unreleased feature branch. Next.js App Router UI/BFF is being
 built on the **real** FastAPI + PostgreSQL backend, not on `showcase/` fixtures.
 This does **not** claim public availability or a browser E2E result.
