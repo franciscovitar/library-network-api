@@ -14,6 +14,8 @@ from app.api.schemas import (
     ErrorOut,
     LoanOut,
     LoanRequestIn,
+    LocalLoanRequestIn,
+    LocalReturnIn,
     ReturnIn,
     TransferDetail,
     TransitionIn,
@@ -21,13 +23,16 @@ from app.api.schemas import (
 from app.application import Clock, utc_now
 from app.application.activate_loan import activate_loan
 from app.application.advance_transfer import advance_transfer
+from app.application.local_circulation import create_local_loan, return_local_loan
 from app.application.request_loan import request_interlibrary_loan
 from app.application.return_loan import return_loan
 from app.db import get_session_factory
 from app.persistence import queries
+from app.security import require_legacy_local_api
 
 router = APIRouter(
     prefix="/api/v1",
+    dependencies=[Depends(require_legacy_local_api)],
     responses={
         404: {"model": ErrorOut, "description": "Resource not found."},
         409: {"model": ErrorOut, "description": "State or idempotency conflict."},
@@ -85,6 +90,58 @@ def get_transfer(transfer_id: int, factory: Factory):
 
 
 # ---- commands ------------------------------------------------------------------------------
+
+
+@router.post(
+    "/loans/local",
+    response_model=LoanOut,
+    status_code=201,
+    tags=["loans"],
+    summary="Issue an available copy locally (atomic, idempotent)",
+    responses={200: {"model": LoanOut, "description": "Idempotent replay"}},
+)
+def issue_local_loan(
+    body: LocalLoanRequestIn,
+    response: Response,
+    factory: Factory,
+    now: Now,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
+):
+    with factory.begin() as session:
+        loan, created = create_local_loan(
+            session,
+            member_id=body.member_id,
+            copy_id=body.copy_id,
+            branch_id=body.branch_id,
+            idempotency_key=idempotency_key,
+            now=now(),
+        )
+        result = LoanOut.model_validate(loan)
+    response.status_code = 201 if created else 200
+    return result
+
+
+@router.post(
+    "/loans/{loan_id}/local-return",
+    response_model=LoanOut,
+    tags=["loans"],
+    summary="Check in a local loan at its issuing branch",
+)
+def check_in_local(
+    loan_id: int,
+    body: LocalReturnIn,
+    factory: Factory,
+    now: Now,
+):
+    with factory.begin() as session:
+        loan = return_local_loan(
+            session,
+            loan_id=loan_id,
+            branch_id=body.branch_id,
+            condition=body.condition,
+            now=now(),
+        )
+        return LoanOut.model_validate(loan)
 
 
 @router.post(

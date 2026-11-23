@@ -1,5 +1,11 @@
 # Library Network API
 
+> **Canonical product decision (23 Nov 2026):** [Real recruiter-facing app with no login](docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). The visitor uses their own synthetic PostgreSQL workspace immediately, without OAuth, password, or signup. The former browser-only `showcase/` is historical and cannot replace the real application.
+
+> **Development branch only:** [PR #4](https://github.com/franciscovitar/library-network-api/pull/4) adds signed anonymous BFF sessions, tenant-scoped local and interlibrary circulation, real dashboard, transactional cleanup and CI browser testing. This does **not** mean the web application has been deployed publicly. See the [current release and merge gates](docs/ops/RELEASE_READINESS_20261123.md) and the [implementation log](docs/product/IMPLEMENTATION_LOG_20261123.md).
+
+> **Safety:** Original unauthenticated `/api/v1` remains local-only and disabled by default. Existing `/api/v2` staff JWT/RBAC is retained for optional administration; `/api/v2/guest` is for BFF-signed, isolated guest subjects only. The linked `library-network-showcase` has a branch-scoped Git auto-deploy veto for `main` recorded in `showcase/vercel.json`, with an approved [showcase merge safety check](.github/workflows/showcase-merge-safety.yml) and a verified feature-branch skip probe. The full [merge and release gates](docs/ops/RELEASE_READINESS_20261123.md) still apply; no Production or paid services were modified.
+
 > **Product direction (21 Nov 2026):** evolve the real FastAPI/PostgreSQL backend into a usable **Library Network operations web application** for librarians and managers. The existing synthetic `showcase/` stays as engineering evidence but is not the future default UI. The approved goal, proposed architecture, security gaps, reuse map and Definition of Done are in [docs/PRODUCT_DIRECTION_V2.md](docs/PRODUCT_DIRECTION_V2.md). This is a target, **not** a currently hosted/authenticated API.
 
 **Status:** V1 merged into `main`; Checkpoint A verified by GitHub Actions. The [technical case study](docs/case-study.md) is published in this repository. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.

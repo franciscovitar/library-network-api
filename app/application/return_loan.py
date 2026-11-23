@@ -16,6 +16,7 @@ from app.application.request_loan import _add_initial_history
 from app.domain.errors import ConflictError
 from app.domain.states import (
     CopyStatus,
+    LoanKind,
     LoanStatus,
     PhysicalCondition,
     TransferDirection,
@@ -30,6 +31,8 @@ def return_loan(
     copy = lock_copy(session, copy_id_of_loan(session, loan_id))
     loan = lock_loan(session, loan_id)
 
+    if loan.kind != LoanKind.INTERLIBRARY.value:
+        raise ConflictError("wrong_loan_kind", "Local loans use local return.")
     if loan.status != LoanStatus.ACTIVE.value:
         raise ConflictError("loan_not_active", f"Loan {loan.id} is {loan.status}, not ACTIVE.")
     if copy.status != CopyStatus.ON_LOAN.value:

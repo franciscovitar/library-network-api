@@ -5,8 +5,11 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.catalog import router as catalog_router
 from app.api.errors import register_error_handlers
+from app.api.guest import router as guest_router
 from app.api.routes import router
+from app.api.secure import router as secured_router
 from app.db import get_engine
 
 app = FastAPI(
@@ -19,6 +22,9 @@ app = FastAPI(
 )
 register_error_handlers(app)
 app.include_router(router)
+app.include_router(catalog_router)
+app.include_router(secured_router)
+app.include_router(guest_router)
 
 
 @app.get("/health", tags=["system"])

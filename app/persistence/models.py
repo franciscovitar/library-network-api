@@ -33,6 +33,7 @@ from app.domain.states import (
     NONTERMINAL_LOAN_STATUSES,
     CopyStatus,
     IdempotentOperation,
+    LoanKind,
     LoanStatus,
     PhysicalCondition,
     TransferDirection,
@@ -132,7 +133,12 @@ class Loan(Base):
             "return_condition IS NULL OR " + _in("return_condition", PhysicalCondition),
             name="return_condition_valid",
         ),
-        CheckConstraint("origin_branch_id <> destination_branch_id", name="branches_differ"),
+        CheckConstraint(
+            "(kind = 'INTERLIBRARY' AND origin_branch_id <> destination_branch_id) OR "
+            "(kind = 'LOCAL' AND origin_branch_id = destination_branch_id)",
+            name="branches_differ",
+        ),
+        CheckConstraint(_in("kind", LoanKind), name="kind_valid"),
         # Date/state coherence: each state implies which timestamps must exist.
         CheckConstraint(
             f"status = '{LoanStatus.REQUESTED}' OR (started_at IS NOT NULL AND due_at IS NOT NULL)",
@@ -161,6 +167,7 @@ class Loan(Base):
     )
 
     id: Mapped[int] = _id()
+    kind: Mapped[str] = mapped_column(String(16), server_default=LoanKind.INTERLIBRARY.value)
     member_id: Mapped[int] = mapped_column(ForeignKey("members.id"))
     copy_id: Mapped[int] = mapped_column(ForeignKey("copies.id"))
     origin_branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
@@ -271,3 +278,86 @@ class IdempotencyRecord(Base):
         ForeignKey("loans.id", deferrable=True, initially="DEFERRED")
     )
     created_at: Mapped[datetime] = _tstz()
+
+
+class StaffUser(Base):
+    """Provisioned staff identity; no public self-registration endpoint."""
+
+    __tablename__ = "staff_users"
+
+    id: Mapped[int] = _id()
+    subject: Mapped[str] = mapped_column(String(180), unique=True)
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class StaffBranchGrant(Base):
+    """Server-owned authorization, never inferred from JWT role claims."""
+
+    __tablename__ = "staff_branch_grants"
+    __table_args__ = (
+        UniqueConstraint("staff_user_id", "branch_id", name="uq_staff_branch_grants_user_branch"),
+        CheckConstraint(
+            "role IN ('VIEWER', 'LIBRARIAN', 'BRANCH_MANAGER', 'NETWORK_ADMIN')",
+            name="role_valid",
+        ),
+        Index("ix_staff_branch_grants_branch_id", "branch_id"),
+    )
+
+    id: Mapped[int] = _id()
+    staff_user_id: Mapped[int] = mapped_column(ForeignKey("staff_users.id"))
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
+    role: Mapped[str] = mapped_column(String(24))
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class DemoWorkspace(Base):
+    """A short-lived, isolated synthetic library owned by an opaque guest subject."""
+
+    __tablename__ = "demo_workspaces"
+    __table_args__ = (Index("ix_demo_workspaces_expires_at", "expires_at"),)
+
+    id: Mapped[int] = _id()
+    subject: Mapped[str] = mapped_column(String(50), unique=True)
+    created_at: Mapped[datetime] = _tstz()
+    expires_at: Mapped[datetime] = _tstz()
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class DemoWorkspaceBranch(Base):
+    """One branch belongs to exactly one guest workspace, never shared."""
+
+    __tablename__ = "demo_workspace_branches"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "branch_id", name="uq_demo_workspace_branches_pair"),
+        UniqueConstraint("branch_id", name="uq_demo_workspace_branches_branch_id"),
+        Index("ix_demo_workspace_branches_workspace_id", "workspace_id"),
+    )
+
+    id: Mapped[int] = _id()
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("demo_workspaces.id"))
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
+
+
+class DemoWorkspaceMember(Base):
+    """A synthetic member belongs to exactly one guest workspace."""
+
+    __tablename__ = "demo_workspace_members"
+    __table_args__ = (
+        UniqueConstraint("member_id", name="uq_demo_workspace_members_member_id"),
+        UniqueConstraint("workspace_id", "member_id", name="uq_demo_workspace_members_pair"),
+        Index("ix_demo_workspace_members_workspace_id", "workspace_id"),
+    )
+
+    id: Mapped[int] = _id()
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("demo_workspaces.id"))
+    member_id: Mapped[int] = mapped_column(ForeignKey("members.id"))
+
+
+class DemoCreationWindow(Base):
+    """Anonymous creation budget shared across workers using PostgreSQL transactions."""
+
+    __tablename__ = "demo_creation_windows"
+
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    created_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    __table_args__ = (CheckConstraint("created_count >= 0", name="nonnegative"),)
