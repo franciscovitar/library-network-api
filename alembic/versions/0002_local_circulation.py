@@ -34,7 +34,7 @@ def upgrade() -> None:
         "(kind = 'LOCAL' AND origin_branch_id = destination_branch_id)",
     )
     op.drop_constraint(
-        "ck_idempotency_records_operation_valid", "idempotency_records", type_="check"
+        op.f("ck_idempotency_records_operation_valid"), "idempotency_records", type_="check"
     )
     op.create_check_constraint(
         op.f("ck_idempotency_records_operation_valid"),
@@ -52,7 +52,7 @@ def downgrade() -> None:
     ):
         raise RuntimeError("Downgrade blocked: local idempotency claims exist.")
     op.drop_constraint(
-        "ck_idempotency_records_operation_valid", "idempotency_records", type_="check"
+        op.f("ck_idempotency_records_operation_valid"), "idempotency_records", type_="check"
     )
     op.create_check_constraint(
         op.f("ck_idempotency_records_operation_valid"),
