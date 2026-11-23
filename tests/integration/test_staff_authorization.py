@@ -269,3 +269,37 @@ def test_overview_viewer_can_read_and_revoked_grant_cannot(api, app_engine):
     with Session(app_engine) as session, session.begin():
         session.execute(update(StaffBranchGrant).values(active=False))
     assert api.get(url).status_code == 403
+
+
+def test_staff_can_select_real_branch_copy_and_exact_synthetic_member(api, app_engine):
+    provision(app_engine, "staff", branch=1, role="LIBRARIAN")
+    as_staff("staff")
+    copies_url = f"{SECURE}/branches/1/copies"
+    members_url = f"{SECURE}/branches/1/members/lookup"
+    first = api.get(copies_url)
+    assert first.status_code == 200, first.text
+    assert first.json()["total"] == 4
+    assert first.json()["items"][0]["title"]
+    assert {copy["id"] for copy in first.json()["items"]} == {1, 3, 7, 10}
+    assert api.get(copies_url, params={"q": "synthetic"}).json()["total"] == 1
+    assert api.get(copies_url, params={"q": "%"}).json()["items"] == []
+    assert api.get(copies_url, params={"limit": 0}).status_code == 422
+
+    member = api.get(members_url, params={"code": "M0001"})
+    assert member.status_code == 200
+    assert member.json() == {"id": 1, "code": "M0001", "enabled": True}
+    disabled = api.get(members_url, params={"code": "M0006"})
+    assert disabled.json()["enabled"] is False
+    assert api.get(members_url, params={"code": "nobody"}).status_code == 404
+    assert api.get(f"{SECURE}/branches/2/copies").status_code == 403
+    assert api.get(
+        f"{SECURE}/branches/2/members/lookup", params={"code": "M0001"}
+    ).status_code == 403
+
+    loan = issue(api, key="copy-finder-test")
+    assert loan.status_code == 201
+    after = api.get(copies_url, params={"q": "CP-0001"}).json()["items"][0]
+    assert after["status"] == "ON_LOAN"
+    assert checkin(api, loan.json()["id"]).status_code == 200
+    restored = api.get(copies_url, params={"q": "CP-0001"}).json()["items"][0]
+    assert restored["status"] == "AVAILABLE"
