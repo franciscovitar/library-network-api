@@ -41,9 +41,7 @@ def test_local_roundtrip_persists_without_transfers(api, app_engine, clock):
     clock.advance(days=2)
     returned = checkin(api, loan["id"])
     assert returned.status_code == 200, returned.text
-    assert (returned.json()["status"], returned.json()["return_condition"]) == (
-        "CLOSED", "GOOD"
-    )
+    assert (returned.json()["status"], returned.json()["return_condition"]) == ("CLOSED", "GOOD")
     assert returned.json()["closed_at"] is not None
     assert scalar(app_engine, "SELECT status FROM copies WHERE id = 1") == "AVAILABLE"
     assert scalar(app_engine, "SELECT count(*) FROM transfers") == 0
