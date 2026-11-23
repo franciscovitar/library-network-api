@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import sessionmaker
 
 from app.api.catalog import CatalogPage
@@ -16,7 +16,7 @@ from app.application import utc_now
 from app.application.local_circulation import create_local_loan, return_local_loan
 from app.db import get_session_factory
 from app.persistence.catalog import search_catalog
-from app.persistence.models import Branch, Loan, StaffBranchGrant, StaffUser
+from app.persistence.models import Book, Branch, Copy, Loan, Member, StaffBranchGrant, StaffUser
 from app.persistence.overview import get_branch_overview
 from app.security import branch_grant, verified_subject
 
@@ -60,6 +60,92 @@ def branch_overview(
     with factory() as session:
         branch_grant(session, subject, branch_id, write=False)
         return get_branch_overview(session, branch_id=branch_id, now=utc_now())
+
+
+class StaffCopy(BaseModel):
+    id: int
+    code: str
+    book_id: int
+    title: str
+    author: str
+    isbn: str
+    status: str
+    physical_condition: str
+
+
+class StaffCopyPage(BaseModel):
+    items: list[StaffCopy]
+    total: int
+    limit: int
+    offset: int
+
+
+class MemberLookup(BaseModel):
+    id: int
+    code: str
+    enabled: bool
+
+
+@router.get("/branches/{branch_id}/copies", response_model=StaffCopyPage)
+def branch_copies(
+    branch_id: int,
+    subject: Annotated[str, Depends(verified_subject)],
+    factory: Annotated[sessionmaker, Depends(get_session_factory)],
+    q: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    """Only copies owned by and currently located at this authorized branch."""
+    with factory() as session:
+        branch_grant(session, subject, branch_id, write=False)
+        stmt = (
+            select(
+                Copy.id,
+                Copy.code,
+                Copy.book_id,
+                Book.title,
+                Book.author,
+                Book.isbn,
+                Copy.status,
+                Copy.physical_condition,
+            )
+            .join(Book, Book.id == Copy.book_id)
+            .where(
+                Copy.current_branch_id == branch_id,
+                Copy.owning_branch_id == branch_id,
+            )
+        )
+        if q is not None:
+            stmt = stmt.where(
+                or_(
+                    Copy.code.icontains(q, autoescape=True),
+                    Book.title.icontains(q, autoescape=True),
+                    Book.author.icontains(q, autoescape=True),
+                    Book.isbn.icontains(q, autoescape=True),
+                )
+            )
+        total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        rows = session.execute(
+            stmt.order_by(Book.title, Copy.code, Copy.id).limit(limit).offset(offset)
+        ).mappings()
+        return {"items": [dict(row) for row in rows], "total": total,
+                "limit": limit, "offset": offset}
+
+
+@router.get("/branches/{branch_id}/members/lookup", response_model=MemberLookup)
+def member_lookup(
+    branch_id: int,
+    subject: Annotated[str, Depends(verified_subject)],
+    factory: Annotated[sessionmaker, Depends(get_session_factory)],
+    code: Annotated[str, Query(min_length=1, max_length=32)],
+):
+    """Exact-match synthetic member lookup; no list or PII enumeration API."""
+    with factory() as session:
+        branch_grant(session, subject, branch_id, write=False)
+        member = session.scalar(select(Member).where(Member.code == code.strip()))
+        if member is None:
+            raise HTTPException(status_code=404, detail="Member not found")
+        return MemberLookup.model_validate(member, from_attributes=True)
 
 
 @router.get("/me", response_model=StaffProfile)
