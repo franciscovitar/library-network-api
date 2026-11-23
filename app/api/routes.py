@@ -142,9 +142,6 @@ def check_in_local(
         return LoanOut.model_validate(loan)
 
 
-
-
-
 @router.post(
     "/loans/interlibrary",
     response_model=LoanOut,
