@@ -21,5 +21,13 @@
 
 - Commit `fba5022cf026576116fa63deb481a1b35c3147c8`: real PostgreSQL catalogue search by title, author and ISBN, per-branch availability, plus state-sensitive integration tests.
 - [GitHub Actions #45232252696](https://github.com/franciscovitar/library-network-api/actions/runs/45232252696): **144 passed; 0 failed; 0 skipped; 132 real-PostgreSQL integration and 12 other tests**. Ruff lint/format PASS. No browser or auth claim.
-- Added explicit local/interlibrary concurrent race and duplicate-key tests afterward. These are pending their **own** commit-linked CI confirmation; do not generalize the previous 144-test result.
+- Added explicit local/interlibrary concurrent race and duplicate-key tests afterward. These are now confirmed by the final commit-linked [GitHub Actions #45232625003](https://github.com/franciscovitar/library-network-api/actions/runs/45232625003): **146 tests passed, 0 failed, 0 skipped; 134 PostgreSQL integration and 12 unit/HTTP**. Ruff lint/format and mandatory real-DB guard passed. The 144-test result applies only to the earlier catalogue commit.
 - Current product status: BACKEND_SLICE_IN_DEVELOPMENT; frontend connected to API NOT_IMPLEMENTED; RBAC/tenant/public deployment NOT_AUTHORIZED.
+
+## End-of-block status (2026-11-23)
+
+- Product blueprint and HTML concept persisted unmodified in `docs/product/` on this branch; user-approved direction.
+- Development adds local circulation, live catalog search and branch availability, durable idempotency, and concurrent race regression tests. End-to-end **browser app is NOT built**.
+- Observed CI at commit `2a865202190633eb9d83c2825ded51d6565318c0`: 146 PASS, PostgreSQL 17, no skips.
+- This log-only follow-up does not change executed behavior; any new head commit requires its own CI status to claim latest-head green.
+- No merge to `main`, no public API, no credentials or production resources modified by this development block.
