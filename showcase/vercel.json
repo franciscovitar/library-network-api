@@ -21,7 +21,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": false
+      "main": false,
+      "feat/library-network-product-foundation-20261123": false
     }
   }
 }
