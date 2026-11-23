@@ -31,3 +31,14 @@
 - Observed CI at commit `2a865202190633eb9d83c2825ded51d6565318c0`: 146 PASS, PostgreSQL 17, no skips.
 - This log-only follow-up does not change executed behavior; any new head commit requires its own CI status to claim latest-head green.
 - No merge to `main`, no public API, no credentials or production resources modified by this development block.
+
+## Staff access development — 2026-11-23
+
+- Added `app/security.py`: fail-closed RS256 verifier with fixed issuer/audience, five-minute maximum lifetime, public RSA JWKS and no role trust in browser-provided headers.
+- Added PostgreSQL migration `0003_staff_branch_permissions.py`, models for `staff_users` and `staff_branch_grants` and staff-only `/api/v2` catalogue, profile, local loan and return routes.
+- Original unauthenticated `/api/v1` is disabled by default and vetoed on recognized managed hosts. Existing CI V1 tests explicitly opt into local mode, not an application default.
+- New tests cover anonymous access, role revocation, cross-branch data/object boundaries, duplicate-key namespace separation, cryptographic invalid tokens and no network-admin wildcard bypass.
+- [GitHub Actions #45235991498](https://github.com/franciscovitar/library-network-api/actions/runs/45235991498), commit `ae3c132f7dfc59f20810537b53e0bed8a5c71fa8`: **166 PASS; 0 FAIL; 0 SKIP; 143 PostgreSQL integrations + 23 unit/HTTP.** Ruff lint/format PASS.
+- Added a later signed-token → FastAPI → PostgreSQL checkout and return E2E integration test; latest-head CI result must be rechecked after this documentation commit.
+- Not implemented: Next.js BFF/OAuth login, key management, admin provisioning workflows, audit trails, per-visitor synthetic workspace, organization isolation, browser QA, Production deployment. **API must remain unexposed.**
+- This block does not authorize production secrets, paid infrastructure or merge to main.
