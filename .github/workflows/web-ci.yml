@@ -39,3 +39,5 @@ jobs:
         run: npm run typecheck
       - name: Next.js production build
         run: npm run build
+      - name: Export npm lockfile for pinned dependency checkpoint
+        run: sed 's/^/LN_LOCK_JSON:/' package-lock.json
