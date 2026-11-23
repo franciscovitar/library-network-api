@@ -360,6 +360,4 @@ class DemoCreationWindow(Base):
 
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     created_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    __table_args__ = (
-        CheckConstraint("created_count >= 0", name="nonnegative"),
-    )
+    __table_args__ = (CheckConstraint("created_count >= 0", name="nonnegative"),)

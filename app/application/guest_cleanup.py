@@ -61,30 +61,28 @@ def _guard_workspace(
     if not branches or not members:
         raise WorkspaceCleanupBlocked("Workspace membership is unexpectedly incomplete")
 
-    copies = list(
-        session.scalars(select(Copy).where(Copy.owning_branch_id.in_(branches)))
-    )
+    copies = list(session.scalars(select(Copy).where(Copy.owning_branch_id.in_(branches))))
     copy_ids = [item.id for item in copies]
     book_ids = list({item.book_id for item in copies})
     if any(item.current_branch_id not in branches for item in copies):
         raise WorkspaceCleanupBlocked("Owned copy is located outside its workspace")
 
     outside_copy = session.scalar(
-        select(Copy.id).where(
+        select(Copy.id)
+        .where(
             or_(
                 Copy.current_branch_id.in_(branches),
                 Copy.book_id.in_(book_ids),
             ),
             ~Copy.id.in_(copy_ids),
-        ).limit(1)
+        )
+        .limit(1)
     )
     if outside_copy is not None:
         raise WorkspaceCleanupBlocked("External copy references a guest branch or guest book")
 
     staff_grant = session.scalar(
-        select(StaffBranchGrant.id)
-        .where(StaffBranchGrant.branch_id.in_(branches))
-        .limit(1)
+        select(StaffBranchGrant.id).where(StaffBranchGrant.branch_id.in_(branches)).limit(1)
     )
     if staff_grant is not None:
         raise WorkspaceCleanupBlocked("Staff access exists on guest branch")
@@ -146,9 +144,7 @@ def cleanup_expired_workspaces(
     )
     results = []
     for workspace in candidates:
-        branches, members, copies, books, loans, transfers = _guard_workspace(
-            session, workspace
-        )
+        branches, members, copies, books, loans, transfers = _guard_workspace(session, workspace)
         summary = {
             "workspace_id": workspace.id,
             "branches": len(branches),
@@ -163,26 +159,16 @@ def cleanup_expired_workspaces(
             continue
 
         # Dependency order matters: no cascading deletes of unrelated rows.
-        session.execute(
-            delete(TransferEvent).where(TransferEvent.transfer_id.in_(transfers))
-        )
+        session.execute(delete(TransferEvent).where(TransferEvent.transfer_id.in_(transfers)))
         session.execute(delete(Transfer).where(Transfer.id.in_(transfers)))
-        session.execute(
-            delete(IdempotencyRecord).where(
-                IdempotencyRecord.resource_id.in_(loans)
-            )
-        )
+        session.execute(delete(IdempotencyRecord).where(IdempotencyRecord.resource_id.in_(loans)))
         session.execute(delete(Loan).where(Loan.id.in_(loans)))
         session.execute(delete(Copy).where(Copy.id.in_(copies)))
         session.execute(
-            delete(DemoWorkspaceBranch).where(
-                DemoWorkspaceBranch.workspace_id == workspace.id
-            )
+            delete(DemoWorkspaceBranch).where(DemoWorkspaceBranch.workspace_id == workspace.id)
         )
         session.execute(
-            delete(DemoWorkspaceMember).where(
-                DemoWorkspaceMember.workspace_id == workspace.id
-            )
+            delete(DemoWorkspaceMember).where(DemoWorkspaceMember.workspace_id == workspace.id)
         )
         session.execute(delete(Book).where(Book.id.in_(books)))
         session.execute(delete(Member).where(Member.id.in_(members)))

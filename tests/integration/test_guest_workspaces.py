@@ -171,7 +171,9 @@ def test_guest_new_loan_quota_preserves_exact_replay(api, app_engine, monkeypatc
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
 
 
-def test_global_creation_cap_rejects_new_visitor_but_not_existing_session(api, app_engine, monkeypatch):
+def test_global_creation_cap_rejects_new_visitor_but_not_existing_session(
+    api, app_engine, monkeypatch
+):
     monkeypatch.setattr(guest_module, "MAX_DEMO_CREATIONS_PER_HOUR", 1)
     first, second = guest_id(), guest_id()
     assert start(api, first).status_code == 201
@@ -190,7 +192,9 @@ def test_global_active_workspace_budget_prevents_unbounded_storage(api, app_engi
     assert scalar(app_engine, "SELECT count(*) FROM branches") == 5
 
 
-def test_hourly_creation_limit_rotates_without_reactivating_old_subjects(api, app_engine, monkeypatch):
+def test_hourly_creation_limit_rotates_without_reactivating_old_subjects(
+    api, app_engine, monkeypatch
+):
     monkeypatch.setattr(guest_module, "MAX_DEMO_CREATIONS_PER_HOUR", 1)
     moments = [datetime(2026, 11, 23, 18, 1, tzinfo=UTC)]
     monkeypatch.setattr(guest_api, "utc_now", lambda: moments[0])

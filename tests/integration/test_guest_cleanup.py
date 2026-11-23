@@ -59,9 +59,7 @@ def test_cleanup_dry_run_and_apply_preserves_others(api, app_engine):
 
     expire(app_engine, old)
     with Session(app_engine) as session, session.begin():
-        inspected = cleanup_expired_workspaces(
-            session, now=datetime.now(UTC), apply=False
-        )
+        inspected = cleanup_expired_workspaces(session, now=datetime.now(UTC), apply=False)
     assert len(inspected) == 1
     assert inspected[0]["branches"] == 2
     assert inspected[0]["loans"] == 1
@@ -69,9 +67,7 @@ def test_cleanup_dry_run_and_apply_preserves_others(api, app_engine):
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
 
     with Session(app_engine) as session, session.begin():
-        removed = cleanup_expired_workspaces(
-            session, now=datetime.now(UTC), apply=True
-        )
+        removed = cleanup_expired_workspaces(session, now=datetime.now(UTC), apply=True)
     assert removed == inspected
     assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1
     assert scalar(app_engine, "SELECT count(*) FROM demo_workspace_branches") == 2
@@ -83,9 +79,7 @@ def test_cleanup_dry_run_and_apply_preserves_others(api, app_engine):
     assert scalar(app_engine, "SELECT count(*) FROM members") == 9
     assert scalar(app_engine, "SELECT count(*) FROM branches") == 5
     with Session(app_engine) as session, session.begin():
-        assert cleanup_expired_workspaces(
-            session, now=datetime.now(UTC), apply=True
-        ) == []
+        assert cleanup_expired_workspaces(session, now=datetime.now(UTC), apply=True) == []
     app.dependency_overrides[verified_subject] = lambda: active
     assert api.get(f"{GUEST}/branches/{active_branch}/overview").status_code == 200
 
@@ -121,12 +115,8 @@ def test_cleanup_rejects_invalid_input_without_mutating(api, app_engine):
     expire(app_engine, subject)
     with pytest.raises(ValueError):
         with Session(app_engine) as session, session.begin():
-            cleanup_expired_workspaces(
-                session, now=datetime.now(UTC), limit=0, apply=True
-            )
+            cleanup_expired_workspaces(session, now=datetime.now(UTC), limit=0, apply=True)
     with pytest.raises(ValueError):
         with Session(app_engine) as session, session.begin():
-            cleanup_expired_workspaces(
-                session, now=datetime(2026, 11, 23), apply=True
-            )
+            cleanup_expired_workspaces(session, now=datetime(2026, 11, 23), apply=True)
     assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1

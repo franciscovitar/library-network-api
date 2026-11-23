@@ -137,7 +137,6 @@ def workspace_branch_ids(session: Session, workspace: DemoWorkspace) -> list[int
     )
 
 
-
 def check_demo_creation_budget(session: Session, now: datetime) -> None:
     """Enforce atomic, cross-worker global limits before allocating synthetic rows.
 
@@ -148,11 +147,14 @@ def check_demo_creation_budget(session: Session, now: datetime) -> None:
         text("SELECT pg_advisory_xact_lock(:lock_id)"),
         {"lock_id": CREATION_LOCK_ID},
     )
-    current = session.scalar(
-        select(func.count())
-        .select_from(DemoWorkspace)
-        .where(DemoWorkspace.active.is_(True), DemoWorkspace.expires_at > now)
-    ) or 0
+    current = (
+        session.scalar(
+            select(func.count())
+            .select_from(DemoWorkspace)
+            .where(DemoWorkspace.active.is_(True), DemoWorkspace.expires_at > now)
+        )
+        or 0
+    )
     if current >= MAX_ACTIVE_DEMO_WORKSPACES:
         raise HTTPException(status_code=429, detail="Demo capacity reached")
 
