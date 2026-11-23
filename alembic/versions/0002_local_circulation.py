@@ -33,7 +33,9 @@ def upgrade() -> None:
         "(kind = 'INTERLIBRARY' AND origin_branch_id <> destination_branch_id) OR "
         "(kind = 'LOCAL' AND origin_branch_id = destination_branch_id)",
     )
-    op.drop_constraint("ck_idempotency_records_operation_valid", "idempotency_records", type_="check")
+    op.drop_constraint(
+        "ck_idempotency_records_operation_valid", "idempotency_records", type_="check"
+    )
     op.create_check_constraint(
         op.f("ck_idempotency_records_operation_valid"),
         "idempotency_records",
@@ -49,7 +51,9 @@ def downgrade() -> None:
         sa.text("SELECT COUNT(*) FROM idempotency_records WHERE operation = 'LOCAL_REQUEST'")
     ):
         raise RuntimeError("Downgrade blocked: local idempotency claims exist.")
-    op.drop_constraint("ck_idempotency_records_operation_valid", "idempotency_records", type_="check")
+    op.drop_constraint(
+        "ck_idempotency_records_operation_valid", "idempotency_records", type_="check"
+    )
     op.create_check_constraint(
         op.f("ck_idempotency_records_operation_valid"),
         "idempotency_records",
