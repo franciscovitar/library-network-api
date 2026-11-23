@@ -19,8 +19,10 @@ test("starting another anonymous library preserves prior PostgreSQL records with
     if (!originalCookie) throw new Error("Original browser capability missing");
 
     await page.getByRole("button", { name: "Crear otra biblioteca temporal" }).click();
+    // Both URLs match /demo/:branchId; wait for an actual path change.
+    const oldPath = new URL(previousUrl).pathname;
+    await expect.poll(() => new URL(page.url()).pathname).not.toBe(oldPath);
     await expect(page).toHaveURL(/\/demo\/\d+(?:\?|$)/);
-    expect(new URL(page.url()).pathname).not.toBe(new URL(previousUrl).pathname);
     await expect(page.locator(".stat-grid .stat-card").first().locator(".stat-value")).toHaveText("0");
 
     const newCookie = (await activeContext.cookies()).find((c) => c.name === "library_guest");
