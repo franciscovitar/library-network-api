@@ -123,7 +123,7 @@ jobs:
           done
           echo "Next.js did not start."
           exit 1
-      - name: Chromium: real anonymous checkout, return, isolation and cookie tamper
+      - name: "Chromium - real anonymous checkout, return, isolation and cookie tamper"
         run: |
           cd qa/browser
           npm run test
