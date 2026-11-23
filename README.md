@@ -1,5 +1,7 @@
 # Library Network API
 
+> **Product modernization in progress (23 Nov 2026):** The owner-approved [product and architecture blueprint](docs/product/LIBRARY_NETWORK_BLUEPRINT_20261123.md) and [interactive visual concept](docs/product/LIBRARY_NETWORK_VISUAL_CONCEPT_20261123.html) are versioned in [PR #4](https://github.com/franciscovitar/library-network-api/pull/4). That development branch adds PostgreSQL-backed LOCAL lending and catalogue search. The backend is **still not safe for public operation** until authentication, branch-scoped authorization and demo isolation are implemented and tested. The current hosted `showcase/` is still a browser-only simulator; do not present it as the finished app.
+
 > **Product direction (21 Nov 2026):** evolve the real FastAPI/PostgreSQL backend into a usable **Library Network operations web application** for librarians and managers. The existing synthetic `showcase/` stays as engineering evidence but is not the future default UI. The approved goal, proposed architecture, security gaps, reuse map and Definition of Done are in [docs/PRODUCT_DIRECTION_V2.md](docs/PRODUCT_DIRECTION_V2.md). This is a target, **not** a currently hosted/authenticated API.
 
 **Status:** V1 merged into `main`; Checkpoint A verified by GitHub Actions. The [technical case study](docs/case-study.md) is published in this repository. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.
