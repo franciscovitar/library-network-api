@@ -33,6 +33,7 @@ from app.domain.states import (
     NONTERMINAL_LOAN_STATUSES,
     CopyStatus,
     IdempotentOperation,
+    LoanKind,
     LoanStatus,
     PhysicalCondition,
     TransferDirection,
@@ -132,7 +133,12 @@ class Loan(Base):
             "return_condition IS NULL OR " + _in("return_condition", PhysicalCondition),
             name="return_condition_valid",
         ),
-        CheckConstraint("origin_branch_id <> destination_branch_id", name="branches_differ"),
+        CheckConstraint(
+            "(kind = 'INTERLIBRARY' AND origin_branch_id <> destination_branch_id) OR "
+            "(kind = 'LOCAL' AND origin_branch_id = destination_branch_id)",
+            name="branches_differ",
+        ),
+        CheckConstraint(_in("kind", LoanKind), name="kind_valid"),
         # Date/state coherence: each state implies which timestamps must exist.
         CheckConstraint(
             f"status = '{LoanStatus.REQUESTED}' OR (started_at IS NOT NULL AND due_at IS NOT NULL)",
@@ -161,6 +167,7 @@ class Loan(Base):
     )
 
     id: Mapped[int] = _id()
+    kind: Mapped[str] = mapped_column(String(16), server_default=LoanKind.INTERLIBRARY.value)
     member_id: Mapped[int] = mapped_column(ForeignKey("members.id"))
     copy_id: Mapped[int] = mapped_column(ForeignKey("copies.id"))
     origin_branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))

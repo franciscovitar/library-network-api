@@ -23,6 +23,17 @@ class LoanRequestIn(_In):
     destination_branch_id: int = Field(ge=1, examples=[2])
 
 
+class LocalLoanRequestIn(_In):
+    member_id: int = Field(ge=1)
+    copy_id: int = Field(ge=1)
+    branch_id: int = Field(ge=1)
+
+
+class LocalReturnIn(_In):
+    branch_id: int = Field(ge=1)
+    condition: PhysicalCondition = PhysicalCondition.GOOD
+
+
 class TransitionIn(_In):
     next_status: TransferStatus = Field(examples=["DISPATCHED"])
 
@@ -85,6 +96,7 @@ class TransferDetail(TransferSummary):
 
 class LoanOut(_Out):
     id: int
+    kind: str
     member_id: int
     copy_id: int
     origin_branch_id: int

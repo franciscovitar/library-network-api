@@ -19,6 +19,11 @@ class LoanStatus(StrEnum):
 NONTERMINAL_LOAN_STATUSES = (LoanStatus.REQUESTED, LoanStatus.ACTIVE, LoanStatus.RETURNING)
 
 
+class LoanKind(StrEnum):
+    INTERLIBRARY = "INTERLIBRARY"
+    LOCAL = "LOCAL"
+
+
 class TransferStatus(StrEnum):
     PREPARED = "PREPARED"
     DISPATCHED = "DISPATCHED"
@@ -55,3 +60,4 @@ class PhysicalCondition(StrEnum):
 
 class IdempotentOperation(StrEnum):
     INTERLIBRARY_REQUEST = "INTERLIBRARY_REQUEST"
+    LOCAL_REQUEST = "LOCAL_REQUEST"

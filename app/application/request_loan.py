@@ -25,6 +25,7 @@ from app.domain.rules import canonical_request_hash
 from app.domain.states import (
     CopyStatus,
     IdempotentOperation,
+    LoanKind,
     LoanStatus,
     TransferDirection,
     TransferStatus,
@@ -42,13 +43,18 @@ OPERATION = IdempotentOperation.INTERLIBRARY_REQUEST
 
 
 def _claim_idempotency_key(
-    session: Session, key: str, request_hash: str, loan_id: int, now: datetime
+    session: Session,
+    key: str,
+    request_hash: str,
+    loan_id: int,
+    now: datetime,
+    operation: IdempotentOperation = OPERATION,
 ) -> bool:
     """True if this transaction won the key, False if it already exists (committed)."""
     claimed = session.execute(
         pg_insert(IdempotencyRecord.__table__)
         .values(
-            operation=OPERATION.value,
+            operation=operation.value,
             key=key,
             request_hash=request_hash,
             resource_type="LOAN",
@@ -138,6 +144,7 @@ def request_interlibrary_loan(
     # 4. Write.
     loan = Loan(
         id=loan_id,
+        kind=LoanKind.INTERLIBRARY.value,
         member_id=member.id,
         copy_id=copy.id,
         origin_branch_id=origin.id,
