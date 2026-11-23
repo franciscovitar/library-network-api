@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException
@@ -50,7 +51,7 @@ def _auth_error() -> HTTPException:
 
 
 def verified_subject(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> str:
     """Validate signature, algorithm, audience, issuer, time window and subject."""
     if credentials is None or credentials.scheme.lower() != "bearer":
