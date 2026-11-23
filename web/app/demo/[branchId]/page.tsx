@@ -52,6 +52,7 @@ export default async function GuestDashboard({
         <Link href="/" className="sidebar-brand"><span className="brand-mark">ln<span>·</span></span> Library Network</Link>
         <div className="sidebar-label">EXPLORACIÓN SIN REGISTRO</div>
         <nav className="sidebar-nav" aria-label="Sucursales del espacio de prueba">
+          <Link className="nav-link" href={`/demo/${branch}/transfers`}>⇄ Red y traslados</Link>
           {profile.branches.map(b => <Link className="nav-link" key={b.branch_id} href={`/demo/${b.branch_id}`}>◫ {b.name.split("· ").at(-1)}</Link>)}
         </nav>
         <div className="sidebar-bottom"><div className="workspace-note"><strong>Aplicación real</strong><span>Datos ficticios, operaciones persistentes</span></div></div>
@@ -62,7 +63,10 @@ export default async function GuestDashboard({
           <div className="page-heading">
             <div><div className="eyebrow">BIBLIOTECA DE PRUEBA · ENTORNO AISLADO</div><h1>Una biblioteca<br /><em>en movimiento.</em></h1>
               <p>Usá este sistema como un bibliotecario: buscá un libro, prestalo y devolvelo. Los cambios se guardan realmente en PostgreSQL y son exclusivos de tu visita.</p></div>
-            <Link className="button button-outline" href="/">Acerca del producto ↗</Link>
+            <div className="page-action-group">
+              <Link className="button button-primary" href={`/demo/${branch}/transfers`}>Operaciones entre sedes ↗</Link>
+              <Link className="button button-outline" href="/">Acerca del producto ↗</Link>
+            </div>
           </div>
           {feedback && <div role="status" className="feedback success">{feedback}</div>}
           <section className="stat-grid" aria-label="Estado actual de esta sucursal">

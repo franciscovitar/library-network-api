@@ -189,3 +189,16 @@ td strong { display: block; color: var(--ink); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Interlibrary real-operation panel: discreet status rail and clear actions. */
+.page-action-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.transfer-item { border: 1px solid var(--border); background: #fbfcf9; border-radius: 7px; padding: 23px; margin-top: 18px; }
+.transfer-item .panel-heading { margin-bottom: 9px; }
+.transfer-item .panel-heading h2 { font-size: 17px; }
+.transfer-item > form { margin-top: 17px; }
+.transfer-stage { border-left: 3px solid #91b6a2; padding: 0 0 14px 19px; margin: 19px 0; }
+.transfer-stage .inventory-row { flex-wrap: wrap; align-items: flex-start; margin-bottom: 10px; }
+.transfer-stage .inventory-row strong { color: var(--pine); }
+.transfer-stage form { margin: 6px 0 8px; }
+.transfer-stage .button { min-height: 36px; padding: 8px 13px; font-size: 11px; }
+@media (max-width: 560px) { .transfer-item { padding: 16px; } .transfer-stage { padding-left: 10px; } }
