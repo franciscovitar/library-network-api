@@ -1,6 +1,11 @@
 """Branch authorization through actual PostgreSQL rows and FastAPI contracts."""
 
+import json
+from datetime import UTC, datetime, timedelta
+
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -156,3 +161,63 @@ def test_idempotency_key_is_scoped_to_user_and_branch(api, app_engine):
     assert first.json()["id"] != second.json()["id"]
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 2
     assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 2
+
+
+def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(api, app_engine, monkeypatch):
+    """No mocked identity: signed RS256 -> FastAPI auth -> PostgreSQL branch authorization."""
+    provision(app_engine, "signed-staff", branch=1)
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(private.public_key()))
+    jwk["kid"] = "signed-integration-ci"
+    monkeypatch.setenv("LIBRARY_JWKS_JSON", json.dumps({"keys": [jwk]}))
+    monkeypatch.setenv("LIBRARY_JWT_ISSUER", "https://auth.example.test")
+    monkeypatch.setenv("LIBRARY_JWT_AUDIENCE", "library-network-api")
+    now = datetime.now(UTC)
+    claims = {
+        "sub": "signed-staff",
+        "iss": "https://auth.example.test",
+        "aud": "library-network-api",
+        "iat": int(now.timestamp()),
+        "nbf": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=3)).timestamp()),
+    }
+    token = jwt.encode(claims, private, algorithm="RS256", headers={"kid": jwk["kid"]})
+    headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": "signed-flow-1"}
+    assert api.get(f"{SECURE}/me", headers=headers).json()["branches"][0]["branch_id"] == 1
+    assert api.get(
+        f"{SECURE}/catalog/search", params={"branch_id": 1}, headers=headers
+    ).status_code == 200
+
+    denied = api.post(
+        f"{SECURE}/loans/local",
+        json={"member_id": 1, "copy_id": 2, "branch_id": 2},
+        headers=headers | {"X-Role": "NETWORK_ADMIN"},
+    )
+    assert denied.status_code == 403
+    assert scalar(app_engine, "SELECT count(*) FROM loans") == 0
+
+    issued = api.post(
+        f"{SECURE}/loans/local",
+        json={"member_id": 1, "copy_id": 1, "branch_id": 1},
+        headers=headers,
+    )
+    assert issued.status_code == 201, issued.text
+    assert issued.json()["status"] == "ACTIVE"
+    assert scalar(app_engine, "SELECT status FROM copies WHERE id=1") == "ON_LOAN"
+    returned = api.post(
+        f"{SECURE}/loans/{issued.json()['id']}/local-return",
+        json={"branch_id": 1, "condition": "GOOD"},
+        headers=headers,
+    )
+    assert returned.status_code == 200
+    assert scalar(app_engine, "SELECT status FROM copies WHERE id=1") == "AVAILABLE"
+
+    wrong_audience = jwt.encode(
+        claims | {"aud": "different-audience"},
+        private,
+        algorithm="RS256",
+        headers={"kid": jwk["kid"]},
+    )
+    assert api.get(
+        f"{SECURE}/me", headers={"Authorization": f"Bearer {wrong_audience}"}
+    ).status_code == 401
