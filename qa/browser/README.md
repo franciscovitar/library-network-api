@@ -18,3 +18,6 @@ copied to hosting credentials or GitHub project documentation.
   FastAPI, so this does not prove deployed Production auth/cookie behavior.
 - Playwright test pass proves one browser-mediated vertical path, **not**
   complete accessibility, mobile, security or deployment readiness.
+- A local Chromium executable can be selected with
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/chromium`; this avoids relying
+  on Playwright's browser CDN when a suitable system browser is already present.

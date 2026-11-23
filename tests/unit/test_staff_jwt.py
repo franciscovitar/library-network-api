@@ -90,8 +90,10 @@ def test_unknown_kid_and_tamper_are_denied(rsa_auth):
     expect_auth_denied(rsa_auth(kid="unknown"))
     token = rsa_auth()
     head, payload, signature = token.split(".")
-    changed = "x" if signature[-1] != "x" else "y"
-    expect_auth_denied(f"{head}.{payload}.{signature[:-1]}{changed}")
+    # Change a significant Base64URL character. The final character can contain
+    # unused padding bits, so changing only it may decode to the same signature.
+    changed = "A" if signature[0] != "A" else "B"
+    expect_auth_denied(f"{head}.{payload}.{changed}{signature[1:]}")
 
 
 def test_missing_configuration_fails_closed(monkeypatch, rsa_auth):
