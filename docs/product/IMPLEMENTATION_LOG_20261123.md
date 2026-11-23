@@ -42,3 +42,13 @@
 - Added a later signed-token → FastAPI → PostgreSQL checkout and return E2E integration test; latest-head CI result must be rechecked after this documentation commit.
 - Not implemented: Next.js BFF/OAuth login, key management, admin provisioning workflows, audit trails, per-visitor synthetic workspace, organization isolation, browser QA, Production deployment. **API must remain unexposed.**
 - This block does not authorize production secrets, paid infrastructure or merge to main.
+
+## Authenticated branch dashboard — 2026-11-23
+
+- Added staff-scoped `GET /api/v2/branches/{branch_id}/overview` returning PostgreSQL-backed counts for total/available copies, distinct titles, active/overdue loans, returns and incoming/outgoing transfers.
+- One SQL statement gives all counts a consistent MVCC snapshot; no counters are browser-simulated or extracted from real patron PII.
+- Negative QA: grant restrictions and revoked access; operational QA: issue local, return and request interlibrary transfer and see the counts change.
+- Verified at code commit `d0702abfaaa31d930fb6d686e66e81eb96d6f425`: [GitHub Actions #45237617852](https://github.com/franciscovitar/library-network-api/actions/runs/45237617852), **169 passed, 0 failed, 0 skipped (146 real PostgreSQL integrations + 23 other)**. Lint/format PASS.
+- The prior 167-test run [#45236710232](https://github.com/franciscovitar/library-network-api/actions/runs/45236710232) also passed after adding a signed JWT→API→Postgres issue/return case.
+- This log commit also lengthens a synthetic HS256 rejection-test key to remove an avoidable PyJWT warning. CI for the new HEAD must be observed separately.
+- Remaining release gates: real Next.js/BFF sign-in and RSA key management, branch provisioning workflow, organizational/visitor demo isolation, audit and abuse controls, browser E2E and an approved QA deployment. **DO NOT DEPLOY the current server publicly.**
