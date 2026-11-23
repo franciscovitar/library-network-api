@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { signOut } from "@/auth";
+import { SignOutButton } from "@/components/AuthButtons";
 import { staffApi } from "@/lib/api";
 import { positiveId } from "@/lib/input";
 import type { BranchAccess, StaffProfile } from "@/lib/types";
@@ -37,9 +37,7 @@ export default async function BranchLayout({ children, params }: {
         </nav>
         <div className="sidebar-bottom">
           <div className="workspace-note"><strong>Operación real</strong><span>Datos sintéticos en desarrollo</span></div>
-          <form action={async () => { "use server"; await signOut({ redirectTo: "/" }); }}>
-            <button type="submit" className="signout-button">Cerrar sesión <span aria-hidden="true">↗</span></button>
-          </form>
+          <SignOutButton />
         </div>
       </aside>
       <div className="workspace-main">

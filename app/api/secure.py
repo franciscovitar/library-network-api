@@ -128,8 +128,12 @@ def branch_copies(
         rows = session.execute(
             stmt.order_by(Book.title, Copy.code, Copy.id).limit(limit).offset(offset)
         ).mappings()
-        return {"items": [dict(row) for row in rows], "total": total,
-                "limit": limit, "offset": offset}
+        return {
+            "items": [dict(row) for row in rows],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
 
 
 @router.get("/branches/{branch_id}/members/lookup", response_model=MemberLookup)

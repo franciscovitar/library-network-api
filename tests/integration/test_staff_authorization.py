@@ -292,9 +292,9 @@ def test_staff_can_select_real_branch_copy_and_exact_synthetic_member(api, app_e
     assert disabled.json()["enabled"] is False
     assert api.get(members_url, params={"code": "nobody"}).status_code == 404
     assert api.get(f"{SECURE}/branches/2/copies").status_code == 403
-    assert api.get(
-        f"{SECURE}/branches/2/members/lookup", params={"code": "M0001"}
-    ).status_code == 403
+    assert (
+        api.get(f"{SECURE}/branches/2/members/lookup", params={"code": "M0001"}).status_code == 403
+    )
 
     loan = issue(api, key="copy-finder-test")
     assert loan.status_code == 201
