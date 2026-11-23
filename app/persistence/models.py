@@ -351,3 +351,15 @@ class DemoWorkspaceMember(Base):
     id: Mapped[int] = _id()
     workspace_id: Mapped[int] = mapped_column(ForeignKey("demo_workspaces.id"))
     member_id: Mapped[int] = mapped_column(ForeignKey("members.id"))
+
+
+class DemoCreationWindow(Base):
+    """Anonymous creation budget shared across workers using PostgreSQL transactions."""
+
+    __tablename__ = "demo_creation_windows"
+
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    created_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    __table_args__ = (
+        CheckConstraint("created_count >= 0", name="nonnegative"),
+    )

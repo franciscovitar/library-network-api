@@ -8,7 +8,7 @@ No cleanup, rate-limit or public deployment is provided by this module.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from uuid import UUID
 
@@ -20,6 +20,7 @@ from app.persistence.models import (
     Book,
     Branch,
     Copy,
+    DemoCreationWindow,
     DemoWorkspace,
     DemoWorkspaceBranch,
     DemoWorkspaceMember,
@@ -30,6 +31,10 @@ from app.persistence.models import (
 
 WORKSPACE_TTL = timedelta(hours=24)
 MAX_GUEST_LOANS = 25
+MAX_DEMO_CREATIONS_PER_HOUR = 60
+MAX_ACTIVE_DEMO_WORKSPACES = 300
+# PostgreSQL advisory lock for a bounded, cross-worker creation counter.
+CREATION_LOCK_ID = 20261123005
 SYNTHETIC_BOOKS = (
     ("Atlas de jardines imposibles", "A. Ejemplo"),
     ("El archivo de las mareas", "B. Ficción"),
@@ -132,6 +137,35 @@ def workspace_branch_ids(session: Session, workspace: DemoWorkspace) -> list[int
     )
 
 
+
+def check_demo_creation_budget(session: Session, now: datetime) -> None:
+    """Enforce atomic, cross-worker global limits before allocating synthetic rows.
+
+    The budget intentionally does not trust X-Forwarded-For or browser input.
+    It is a baseline cost guard, not an IP-level anti-abuse solution.
+    """
+    session.execute(
+        text("SELECT pg_advisory_xact_lock(:lock_id)"),
+        {"lock_id": CREATION_LOCK_ID},
+    )
+    current = session.scalar(
+        select(func.count())
+        .select_from(DemoWorkspace)
+        .where(DemoWorkspace.active.is_(True), DemoWorkspace.expires_at > now)
+    ) or 0
+    if current >= MAX_ACTIVE_DEMO_WORKSPACES:
+        raise HTTPException(status_code=429, detail="Demo capacity reached")
+
+    start = now.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+    budget = session.get(DemoCreationWindow, start)
+    if budget is not None and budget.created_count >= MAX_DEMO_CREATIONS_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Demo creation rate limit reached")
+    if budget is None:
+        session.add(DemoCreationWindow(window_start=start, created_count=1))
+    else:
+        budget.created_count += 1
+
+
 def start_guest_workspace(
     session: Session, *, subject: str, now: datetime
 ) -> tuple[DemoWorkspace, bool]:
@@ -148,6 +182,8 @@ def start_guest_workspace(
             raise HTTPException(status_code=410, detail="Guest workspace expired")
         return workspace, False
 
+    # Serialized across app workers. Quota changes and bootstrap commit atomically.
+    check_demo_creation_budget(session, now)
     workspace = DemoWorkspace(
         subject=subject, created_at=now, expires_at=now + WORKSPACE_TTL, active=True
     )

@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api import guest as guest_api
 from app.application import guest_workspace as guest_module
 from app.main import app
 from app.security import verified_subject
@@ -168,3 +169,35 @@ def test_guest_new_loan_quota_preserves_exact_replay(api, app_engine, monkeypatc
     other = guest_issue(api, subject, branch, members[1]["id"], copies[1]["id"], "quota-two")
     assert other.status_code == 429
     assert scalar(app_engine, "SELECT count(*) FROM loans") == 1
+
+
+def test_global_creation_cap_rejects_new_visitor_but_not_existing_session(api, app_engine, monkeypatch):
+    monkeypatch.setattr(guest_module, "MAX_DEMO_CREATIONS_PER_HOUR", 1)
+    first, second = guest_id(), guest_id()
+    assert start(api, first).status_code == 201
+    assert start(api, first).status_code == 200
+    denied = start(api, second)
+    assert denied.status_code == 429
+    assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1
+    assert scalar(app_engine, "SELECT sum(created_count) FROM demo_creation_windows") == 1
+
+
+def test_global_active_workspace_budget_prevents_unbounded_storage(api, app_engine, monkeypatch):
+    monkeypatch.setattr(guest_module, "MAX_ACTIVE_DEMO_WORKSPACES", 1)
+    assert start(api, guest_id()).status_code == 201
+    assert start(api, guest_id()).status_code == 429
+    assert scalar(app_engine, "SELECT count(*) FROM demo_workspaces") == 1
+    assert scalar(app_engine, "SELECT count(*) FROM branches") == 5
+
+
+def test_hourly_creation_limit_rotates_without_reactivating_old_subjects(api, app_engine, monkeypatch):
+    monkeypatch.setattr(guest_module, "MAX_DEMO_CREATIONS_PER_HOUR", 1)
+    moments = [datetime(2026, 11, 23, 18, 1, tzinfo=UTC)]
+    monkeypatch.setattr(guest_api, "utc_now", lambda: moments[0])
+    a, b = guest_id(), guest_id()
+    assert start(api, a).status_code == 201
+    assert start(api, b).status_code == 429
+    moments[0] += timedelta(hours=1)
+    assert start(api, b).status_code == 201
+    assert scalar(app_engine, "SELECT count(*) FROM demo_creation_windows") == 2
+    assert scalar(app_engine, "SELECT sum(created_count) FROM demo_creation_windows") == 2
