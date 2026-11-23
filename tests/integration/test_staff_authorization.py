@@ -225,3 +225,47 @@ def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(
         api.get(f"{SECURE}/me", headers={"Authorization": f"Bearer {wrong_audience}"}).status_code
         == 401
     )
+
+
+def test_operational_overview_is_real_and_scoped(api, app_engine):
+    provision(app_engine, "operator", branch=1)
+    as_staff("operator")
+    url = f"{SECURE}/branches/1/overview"
+    baseline = api.get(url)
+    assert baseline.status_code == 200, baseline.text
+    row = baseline.json()
+    assert row["branch_id"] == 1
+    assert (row["total_copies"], row["available_copies"], row["catalog_titles"]) == (4, 3, 4)
+    assert row["active_loans"] == 0
+    assert row["pending_dispatches"] == 0
+    assert api.get(f"{SECURE}/branches/2/overview").status_code == 403
+
+    loan = issue(api, key="overview-local-1")
+    assert loan.status_code == 201
+    during = api.get(url).json()
+    assert during["available_copies"] == 2
+    assert during["active_loans"] == 1
+    assert during["total_copies"] == 4
+
+    assert checkin(api, loan.json()["id"]).status_code == 200
+    restored = api.get(url).json()
+    assert (restored["available_copies"], restored["active_loans"]) == (3, 0)
+
+    transfer = api.post(
+        f"{API}/loans/interlibrary",
+        json={"member_id": 2, "copy_id": 3, "destination_branch_id": 2},
+        headers={"Idempotency-Key": "overview-transfer-1"},
+    )
+    assert transfer.status_code == 201
+    assert api.get(url).json()["pending_dispatches"] == 1
+
+
+def test_overview_viewer_can_read_and_revoked_grant_cannot(api, app_engine):
+    provision(app_engine, "viewer", branch=1, role="VIEWER")
+    as_staff("viewer")
+    url = f"{SECURE}/branches/1/overview"
+    assert api.get(url).status_code == 200
+    assert issue(api).status_code == 403
+    with Session(app_engine) as session, session.begin():
+        session.execute(update(StaffBranchGrant).values(active=False))
+    assert api.get(url).status_code == 403

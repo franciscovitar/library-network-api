@@ -17,6 +17,7 @@ from app.application.local_circulation import create_local_loan, return_local_lo
 from app.db import get_session_factory
 from app.persistence.catalog import search_catalog
 from app.persistence.models import Branch, Loan, StaffBranchGrant, StaffUser
+from app.persistence.overview import get_branch_overview
 from app.security import branch_grant, verified_subject
 
 router = APIRouter(prefix="/api/v2", tags=["staff"])
@@ -35,6 +36,30 @@ class StaffProfile(BaseModel):
 def _scope_key(subject: str, branch_id: int, key: str) -> str:
     """A retry cannot replay a different staff user's successful request."""
     return sha256(f"local:{subject}:{branch_id}:{key}".encode()).hexdigest()
+
+
+class BranchOverview(BaseModel):
+    branch_id: int
+    total_copies: int
+    available_copies: int
+    catalog_titles: int
+    active_loans: int
+    overdue_loans: int
+    pending_returns: int
+    pending_arrivals: int
+    pending_dispatches: int
+
+
+@router.get("/branches/{branch_id}/overview", response_model=BranchOverview)
+def branch_overview(
+    branch_id: int,
+    subject: Annotated[str, Depends(verified_subject)],
+    factory: Annotated[sessionmaker, Depends(get_session_factory)],
+):
+    """Live branch metrics; every value is computed from the current database state."""
+    with factory() as session:
+        branch_grant(session, subject, branch_id, write=False)
+        return get_branch_overview(session, branch_id=branch_id, now=utc_now())
 
 
 @router.get("/me", response_model=StaffProfile)
