@@ -278,3 +278,33 @@ class IdempotencyRecord(Base):
         ForeignKey("loans.id", deferrable=True, initially="DEFERRED")
     )
     created_at: Mapped[datetime] = _tstz()
+
+
+class StaffUser(Base):
+    """Provisioned staff identity; no public self-registration endpoint."""
+
+    __tablename__ = "staff_users"
+
+    id: Mapped[int] = _id()
+    subject: Mapped[str] = mapped_column(String(180), unique=True)
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class StaffBranchGrant(Base):
+    """Server-owned authorization, never inferred from JWT role claims."""
+
+    __tablename__ = "staff_branch_grants"
+    __table_args__ = (
+        UniqueConstraint("staff_user_id", "branch_id", name="uq_staff_branch_grants_user_branch"),
+        CheckConstraint(
+            "role IN ('VIEWER', 'LIBRARIAN', 'BRANCH_MANAGER', 'NETWORK_ADMIN')",
+            name="role_valid",
+        ),
+        Index("ix_staff_branch_grants_branch_id", "branch_id"),
+    )
+
+    id: Mapped[int] = _id()
+    staff_user_id: Mapped[int] = mapped_column(ForeignKey("staff_users.id"))
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
+    role: Mapped[str] = mapped_column(String(24))
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))

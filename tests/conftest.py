@@ -46,6 +46,10 @@ def _wait_for_database(url: str, seconds: float = 30.0) -> str | None:
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
+    # Historic V1 tests exercise the original loopback-only API. This explicit
+    # test opt-in is NOT an application default and is vetoed on managed hosts.
+    os.environ.setdefault("LIBRARY_RUNTIME_MODE", "local")
+    os.environ.setdefault("LIBRARY_ENABLE_UNSAFE_V1", "1")
     if not _required():
         return
     url = os.getenv("TEST_DATABASE_URL")

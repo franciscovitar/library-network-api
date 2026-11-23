@@ -10,8 +10,13 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db import get_session_factory
 from app.persistence.catalog import search_catalog
+from app.security import require_legacy_local_api
 
-router = APIRouter(prefix="/api/v1/catalog", tags=["catalogue"])
+router = APIRouter(
+    prefix="/api/v1/catalog",
+    tags=["catalogue"],
+    dependencies=[Depends(require_legacy_local_api)],
+)
 
 
 class CatalogItem(BaseModel):

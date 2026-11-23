@@ -28,9 +28,11 @@ from app.application.request_loan import request_interlibrary_loan
 from app.application.return_loan import return_loan
 from app.db import get_session_factory
 from app.persistence import queries
+from app.security import require_legacy_local_api
 
 router = APIRouter(
     prefix="/api/v1",
+    dependencies=[Depends(require_legacy_local_api)],
     responses={
         404: {"model": ErrorOut, "description": "Resource not found."},
         409: {"model": ErrorOut, "description": "State or idempotency conflict."},
