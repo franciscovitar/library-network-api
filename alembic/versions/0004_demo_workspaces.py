@@ -37,19 +37,19 @@ def upgrade() -> None:
         sa.Column("branch_id", sa.BigInteger(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_demo_workspace_branches")),
         sa.ForeignKeyConstraint(
-            ["workspace_id"], ["demo_workspaces.id"],
+            ["workspace_id"],
+            ["demo_workspaces.id"],
             name=op.f("fk_demo_workspace_branches_workspace_id_demo_workspaces"),
         ),
         sa.ForeignKeyConstraint(
-            ["branch_id"], ["branches.id"],
+            ["branch_id"],
+            ["branches.id"],
             name=op.f("fk_demo_workspace_branches_branch_id_branches"),
         ),
         sa.UniqueConstraint(
             "workspace_id", "branch_id", name=op.f("uq_demo_workspace_branches_pair")
         ),
-        sa.UniqueConstraint(
-            "branch_id", name=op.f("uq_demo_workspace_branches_branch_id")
-        ),
+        sa.UniqueConstraint("branch_id", name=op.f("uq_demo_workspace_branches_branch_id")),
     )
     op.create_index(
         "ix_demo_workspace_branches_workspace_id",
@@ -67,15 +67,14 @@ def upgrade() -> None:
             name=op.f("fk_demo_workspace_members_workspace_id_demo_workspaces"),
         ),
         sa.ForeignKeyConstraint(
-            ["member_id"], ["members.id"],
+            ["member_id"],
+            ["members.id"],
             name=op.f("fk_demo_workspace_members_member_id_members"),
         ),
         sa.UniqueConstraint(
             "workspace_id", "member_id", name=op.f("uq_demo_workspace_members_pair")
         ),
-        sa.UniqueConstraint(
-            "member_id", name=op.f("uq_demo_workspace_members_member_id")
-        ),
+        sa.UniqueConstraint("member_id", name=op.f("uq_demo_workspace_members_member_id")),
     )
     op.create_index(
         "ix_demo_workspace_members_workspace_id",
