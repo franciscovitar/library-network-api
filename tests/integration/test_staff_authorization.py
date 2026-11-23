@@ -18,9 +18,9 @@ def provision(engine, subject, *, branch=1, role="LIBRARIAN", active=True):
         user = StaffUser(subject=subject, active=active)
         session.add(user)
         session.flush()
-        session.add(StaffBranchGrant(
-            staff_user_id=user.id, branch_id=branch, role=role, active=True
-        ))
+        session.add(
+            StaffBranchGrant(staff_user_id=user.id, branch_id=branch, role=role, active=True)
+        )
 
 
 def as_staff(subject):
@@ -49,11 +49,14 @@ def test_default_anonymous_is_denied_and_legacy_requires_opt_in(api, monkeypatch
 
     monkeypatch.delenv("LIBRARY_ENABLE_UNSAFE_V1", raising=False)
     assert api.get(f"{API}/branches").status_code == 404
-    assert api.post(
-        f"{API}/loans/local",
-        json={"member_id": 1, "copy_id": 1, "branch_id": 1},
-        headers={"Idempotency-Key": "legacy-blocked"},
-    ).status_code == 404
+    assert (
+        api.post(
+            f"{API}/loans/local",
+            json={"member_id": 1, "copy_id": 1, "branch_id": 1},
+            headers={"Idempotency-Key": "legacy-blocked"},
+        ).status_code
+        == 404
+    )
 
 
 def test_managed_host_vetoes_legacy_even_if_opted_in(api, monkeypatch):

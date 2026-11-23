@@ -108,9 +108,7 @@ def secure_issue(
     response: Response,
     subject: Annotated[str, Depends(verified_subject)],
     factory: Annotated[sessionmaker, Depends(get_session_factory)],
-    idempotency_key: Annotated[
-        str, Header(alias="Idempotency-Key", min_length=1, max_length=128)
-    ],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
 ):
     with factory.begin() as session:
         branch_grant(session, subject, body.branch_id, write=True)

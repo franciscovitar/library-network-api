@@ -40,7 +40,8 @@ def upgrade() -> None:
             name=op.f("fk_staff_branch_grants_staff_user_id_staff_users"),
         ),
         sa.ForeignKeyConstraint(
-            ["branch_id"], ["branches.id"],
+            ["branch_id"],
+            ["branches.id"],
             name=op.f("fk_staff_branch_grants_branch_id_branches"),
         ),
         sa.UniqueConstraint(

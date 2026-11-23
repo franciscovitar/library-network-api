@@ -75,9 +75,7 @@ def verified_subject(
         if not isinstance(kid, str) or not (1 <= len(kid) <= 128):
             raise _auth_error()
         keyset = jwt.PyJWKSet.from_json(public_jwks)
-        matching = [
-            key for key in keyset.keys if key.key_id == kid and key.key_type == "RSA"
-        ]
+        matching = [key for key in keyset.keys if key.key_id == kid and key.key_type == "RSA"]
         if len(matching) != 1:
             raise _auth_error()
         claims = jwt.decode(
