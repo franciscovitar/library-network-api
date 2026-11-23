@@ -91,13 +91,18 @@ jobs:
               "alg": "RS256", "use": "sig",
               "n": b64(pub.n), "e": b64(pub.e),
           }]}
+          cookie_secret = secrets.token_hex(32)
+          qa_gate_password = secrets.token_hex(32)
+          escaped_pem = pem.replace("\n", "\\n")
+          for secret_value in (escaped_pem, cookie_secret, qa_gate_password):
+              print(f"::add-mask::{secret_value}")
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as target:
               target.write("LIBRARY_JWKS_JSON=" + json.dumps(jwks, separators=(",", ":")) + "\n")
-              target.write("LIBRARY_API_SIGNING_KEY_PKCS8=" + pem.replace("\n", "\\n") + "\n")
+              target.write("LIBRARY_API_SIGNING_KEY_PKCS8=" + escaped_pem + "\n")
               target.write("LIBRARY_API_SIGNING_KID=ci-temporary-guest\n")
-              target.write("LIBRARY_GUEST_COOKIE_SECRET=" + secrets.token_hex(32) + "\n")
+              target.write("LIBRARY_GUEST_COOKIE_SECRET=" + cookie_secret + "\n")
               target.write("QA_GATE_USERNAME=ci-qa-reviewer\n")
-              target.write("QA_GATE_PASSWORD=" + secrets.token_hex(32) + "\n")
+              target.write("QA_GATE_PASSWORD=" + qa_gate_password + "\n")
           print("Ephemeral signing/JWKS, guest-cookie, and QA-gate material created for disposable CI only.")
           PY
       - name: Migrate disposable PostgreSQL and seed synthetic fixtures
