@@ -52,3 +52,14 @@
 - The prior 167-test run [#45236710232](https://github.com/franciscovitar/library-network-api/actions/runs/45236710232) also passed after adding a signed JWT→API→Postgres issue/return case.
 - This log commit also lengthens a synthetic HS256 rejection-test key to remove an avoidable PyJWT warning. CI for the new HEAD must be observed separately.
 - Remaining release gates: real Next.js/BFF sign-in and RSA key management, branch provisioning workflow, organizational/visitor demo isolation, audit and abuse controls, browser E2E and an approved QA deployment. **DO NOT DEPLOY the current server publicly.**
+
+## Next.js operations web: first vertical UI (2026-11-23)
+
+- `web/` contains a Next.js 16 App Router/React 19 TypeScript application separate from `showcase/`, with the approved forest-green editorial UX tokens, responsive sidebar, catalogue, operational metrics and real issue/return forms.
+- An Auth.js GitHub OAuth identity is mapped to immutable `github:<providerAccountId>`. No automatic staff or branch provisioning. Staff API authorizes every request against PostgreSQL; BFF signs a fresh three-minute RS256 service token with a server-only private key and does not expose it to the browser.
+- New secured `/api/v2/branches/{branch_id}/copies` and exact `members/lookup` provide real records for checkout selection, without user-entered database IDs as the primary search interaction.
+- Server Actions reverify session before each write; FastAPI enforces grants and physical-copy locks. No client-side state changes are treated as an authorized loan.
+- Frontend `package-lock.json` was generated via GitHub Actions and committed; CI uses `npm ci`, TypeScript, native Node tests and `next build`.
+- **Observed QA checkpoint** at commit `51e5723adb5149d8dbd4476b222ea755df6936d6`: [Web CI #45241737637](https://github.com/franciscovitar/library-network-api/actions/runs/45241737637) succeeded (npm ci, 3 Node validation tests, TypeScript and production Next build); [Python CI #45241737626](https://github.com/franciscovitar/library-network-api/actions/runs/45241737626) succeeded (PostgreSQL integration suite + Ruff).
+- Post-checkpoint UX polish added logout on mobile and on unprovisioned accounts and hides issue links from read-only staff. These changes require their own final CI readback.
+- Public OAuth integration has **NOT** been operated with real credentials; BFF-to-FastAPI browser E2E **NOT_RUN**. Dedicated demo workspace per visitor, organization isolation, audit, rate-limiting, access provisioning and deployment **NOT_DONE**. No statement of usability as a publicly deployed product.
