@@ -16,6 +16,19 @@ test("anonymous identity uses an HMAC-signed, time-bounded capability", () => {
   assert.equal(verifyGuestId(undefined, secret, now), null);
 });
 
+test("reject noncanonical base64url signatures with the same decoded HMAC", () => {
+  const sealed = sealGuestId(id, secret, now);
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const original = sealed.at(-1);
+  assert.ok(original);
+  const index = alphabet.indexOf(original);
+  assert.ok(index >= 0);
+  const differentPadding = alphabet[(index & ~3) | ((index + 1) & 3)];
+  const modified = sealed.slice(0, -1) + differentPadding;
+  assert.notEqual(modified, sealed);
+  assert.equal(verifyGuestId(modified, secret, now), null);
+});
+
 test("archived, future and forged issue-time cookies cannot re-create a guest workspace", () => {
   const sealed = sealGuestId(id, secret, now);
   assert.equal(verifyGuestId(sealed, secret, now + GUEST_TTL_SECONDS - 1), id);

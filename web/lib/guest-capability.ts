@@ -32,9 +32,11 @@ export function verifyGuestId(
       issuedAt > now + 30 || now - issuedAt >= GUEST_TTL_SECONDS) return null;
   const expected = createHmac("sha256", secret).update(`${id}.${issued}`).digest();
   let received: Buffer;
+  if (!/^[A-Za-z0-9_-]{43}$/.test(signature)) return null;
   try { received = Buffer.from(signature, "base64url"); }
   catch { return null; }
-  return received.length === expected.length && timingSafeEqual(received, expected)
+  return received.toString("base64url") === signature &&
+    received.length === expected.length && timingSafeEqual(received, expected)
     ? id
     : null;
 }

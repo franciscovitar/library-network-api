@@ -61,13 +61,11 @@ jobs:
         run: |
           python -m pip install -e ".[dev]"
           cd web && npm ci --no-audit --no-fund
-      - name: Install isolated Playwright QA dependencies
+      - name: Install isolated, locked Playwright QA dependencies
         run: |
           cd qa/browser
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install chromium --with-deps --only-shell
-      - name: Export initial browser lock for reproducible follow-up
-        run: sed 's/^/BROWSER_LOCK_JSON:/' qa/browser/package-lock.json
       - name: Generate synthetic-only RSA pair and guest cookie secret
         run: |
           python - <<'PY'
