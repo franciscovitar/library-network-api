@@ -1,10 +1,24 @@
-import { expect, test } from "@playwright/test";
+import { expect, request, test } from "@playwright/test";
 
 const root = "http://127.0.0.1:3000";
+const qaHttpCredentials = {
+  username: process.env.QA_GATE_USERNAME ?? "",
+  password: process.env.QA_GATE_PASSWORD ?? "",
+};
 
-test("recruiter enters without login, lends/returns a real copy and stays isolated", async ({ browser }) => {
-  const firstContext = await browser.newContext();
-  const secondContext = await browser.newContext();
+test("QA gate rejects requests without credentials", async () => {
+  const unauthenticated = await request.newContext({ baseURL: root });
+  try {
+    const response = await unauthenticated.get("/");
+    expect(response.status()).toBe(401);
+  } finally {
+    await unauthenticated.dispose();
+  }
+});
+
+test("recruiter enters without app login, lends/returns a real copy and stays isolated", async ({ browser }) => {
+  const firstContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
+  const secondContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
   try {
     const first = await firstContext.newPage();
     await first.goto(root);

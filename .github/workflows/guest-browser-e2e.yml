@@ -96,7 +96,9 @@ jobs:
               target.write("LIBRARY_API_SIGNING_KEY_PKCS8=" + pem.replace("\n", "\\n") + "\n")
               target.write("LIBRARY_API_SIGNING_KID=ci-temporary-guest\n")
               target.write("LIBRARY_GUEST_COOKIE_SECRET=" + secrets.token_hex(32) + "\n")
-          print("Ephemeral signing/JWKS material created for disposable CI only.")
+              target.write("QA_GATE_USERNAME=ci-qa-reviewer\n")
+              target.write("QA_GATE_PASSWORD=" + secrets.token_hex(32) + "\n")
+          print("Ephemeral signing/JWKS, guest-cookie, and QA-gate material created for disposable CI only.")
           PY
       - name: Migrate disposable PostgreSQL and seed synthetic fixtures
         run: |
@@ -116,7 +118,7 @@ jobs:
           cd web
           nohup npm run dev -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/library-web.log" 2>&1 &
           for i in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then exit 0; fi
+            if curl -fsS -u "$QA_GATE_USERNAME:$QA_GATE_PASSWORD" http://127.0.0.1:3000/ >/dev/null 2>&1; then exit 0; fi
             sleep 1
           done
           echo "Next.js did not start."
