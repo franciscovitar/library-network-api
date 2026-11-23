@@ -165,7 +165,9 @@ td strong { display: block; color: var(--ink); font-weight: 700; }
   .sidebar-nav { display: flex; gap: 3px; overflow-x: auto; }
   .nav-link { padding: 8px 12px; font-size: 11px; white-space: nowrap; }
   .nav-link span { font-size: 15px; width: auto; }
-  .sidebar-bottom { display: none; }
+  .sidebar-bottom { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .workspace-note { display: none; }
+  .signout-button { width: auto; gap: 9px; font-size: 11px; padding: 8px 12px; }
   .workspace-header { min-height: 58px; padding: 0 16px; }
   .identity-chip { display: none; }
   .workspace-content { padding: 24px 16px; }

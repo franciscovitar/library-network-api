@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { staffApi } from "@/lib/api";
 import { boundedSearch, positiveId } from "@/lib/input";
-import type { BranchCopy, CatalogPage, CopyPage } from "@/lib/types";
+import type { BranchCopy, CatalogPage, CopyPage, StaffProfile } from "@/lib/types";
 
 export const metadata = { title: "Catálogo" };
 export const dynamic = "force-dynamic";
@@ -35,10 +35,13 @@ export default async function Catalog({
   if (q) qs.set("q", q);
   const copyQs = new URLSearchParams({ limit: "20" });
   if (q) copyQs.set("q", q);
-  const [catalog, copies] = await Promise.all([
+  const [catalog, copies, profile] = await Promise.all([
     staffApi<CatalogPage>(`/api/v2/catalog/search?${qs.toString()}`),
     staffApi<CopyPage>(`/api/v2/branches/${branchId}/copies?${copyQs.toString()}`),
+    staffApi<StaffProfile>("/api/v2/me"),
   ]);
+  const role = profile.branches.find((b) => b.branch_id === branchId)?.role;
+  const canWrite = role && role !== "VIEWER";
   const base = `/workspace/${branchId}/catalog`;
   const previous = new URLSearchParams({ q, page: String(page - 1) });
   const following = new URLSearchParams({ q, page: String(page + 1) });
@@ -84,7 +87,7 @@ export default async function Catalog({
             <tbody>{copies.items.map((copy) => <tr key={copy.id}>
               <td className="mono">{copy.code}</td><td><strong>{copy.title}</strong><span className="subtle-text">{copy.author}</span></td>
               <td><span className={copy.status === "AVAILABLE" ? "pill pill-available" : "pill pill-muted"}>{statusLabel(copy)}</span></td>
-              <td>{copy.status === "AVAILABLE" ? <Link href={`/workspace/${branchId}/circulation?copy=${copy.id}`}>Prestar ↗</Link> : <span className="subtle-text">No disponible</span>}</td>
+              <td>{copy.status === "AVAILABLE" && canWrite ? <Link href={`/workspace/${branchId}/circulation?copy=${copy.id}`}>Prestar ↗</Link> : <span className="subtle-text">No disponible</span>}</td>
             </tr>)}</tbody>
           </table></div>
         )}
