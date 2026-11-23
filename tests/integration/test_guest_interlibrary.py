@@ -70,9 +70,9 @@ def test_interlibrary_roundtrip_is_transactional_and_scoped(api, app_engine):
     assert api.get(f"{BASE}/transfers/{outbound['id']}").status_code == 404
     assert next_step(api, outbound["id"], "DISPATCHED").status_code == 404
     assert api.post(f"{BASE}/loans/{loan['id']}/activate").status_code == 404
-    assert api.post(
-        f"{BASE}/loans/{loan['id']}/return", json={"condition": "GOOD"}
-    ).status_code == 404
+    assert (
+        api.post(f"{BASE}/loans/{loan['id']}/return", json={"condition": "GOOD"}).status_code == 404
+    )
     assert api.get(f"{BASE}/loans").json() == []
     assert api.get(f"{BASE}/branches/{b_origin}/overview").json()["active_loans"] == 0
 
@@ -94,16 +94,17 @@ def test_interlibrary_roundtrip_is_transactional_and_scoped(api, app_engine):
     assert next_step(api, outbound["id"], "RECEIVED").status_code == 409
     history = api.get(f"{BASE}/transfers/{outbound['id']}")
     assert [event["to_status"] for event in history.json()["events"]] == [
-        "PREPARED", "DISPATCHED", "IN_TRANSIT", "RECEIVED",
+        "PREPARED",
+        "DISPATCHED",
+        "IN_TRANSIT",
+        "RECEIVED",
     ]
     active = api.post(f"{BASE}/loans/{loan['id']}/activate")
     assert active.status_code == 200, active.text
     assert active.json()["status"] == "ACTIVE"
     assert api.get(f"{BASE}/branches/{a_destination}/overview").json()["active_loans"] == 1
 
-    returned = api.post(
-        f"{BASE}/loans/{loan['id']}/return", json={"condition": "GOOD"}
-    )
+    returned = api.post(f"{BASE}/loans/{loan['id']}/return", json={"condition": "GOOD"})
     assert returned.status_code == 200, returned.text
     assert returned.json()["status"] == "RETURNING"
     ret = next(t for t in returned.json()["transfers"] if t["direction"] == "RETURN")
@@ -162,9 +163,7 @@ def test_cross_workspace_request_and_transfer_ids_never_write(api, app_engine):
     assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 0
 
 
-def test_interlibrary_replay_survives_quota_and_rejects_changed_body(
-    api, app_engine, monkeypatch
-):
+def test_interlibrary_replay_survives_quota_and_rejects_changed_body(api, app_engine, monkeypatch):
     from app.application import guest_workspace as guest_module
 
     monkeypatch.setattr(guest_module, "MAX_GUEST_LOANS", 1)
@@ -177,12 +176,14 @@ def test_interlibrary_replay_survives_quota_and_rejects_changed_body(
     payload = {"member_id": member, "copy_id": copies[0]["id"], "destination_branch_id": dest}
     first = api.post(
         f"{BASE}/loans/interlibrary",
-        json=payload, headers={"Idempotency-Key": "same-key"},
+        json=payload,
+        headers={"Idempotency-Key": "same-key"},
     )
     assert first.status_code == 201, first.text
     exact = api.post(
         f"{BASE}/loans/interlibrary",
-        json=payload, headers={"Idempotency-Key": "same-key"},
+        json=payload,
+        headers={"Idempotency-Key": "same-key"},
     )
     assert exact.status_code == 200 and exact.json()["id"] == first.json()["id"]
     altered = api.post(

@@ -129,10 +129,7 @@ def owned_loan(session: Session, workspace: DemoWorkspace, loan_id: int) -> Loan
     return loan
 
 
-
-def owned_workspace_copy(
-    session: Session, workspace: DemoWorkspace, copy_id: int
-) -> Copy:
+def owned_workspace_copy(session: Session, workspace: DemoWorkspace, copy_id: int) -> Copy:
     """A transfer may move a guest copy, but never outside its own workspace."""
     copy = session.scalar(
         select(Copy)

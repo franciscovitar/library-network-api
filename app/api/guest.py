@@ -405,9 +405,7 @@ def guest_activate_interlibrary(loan_id: int, subject: Subject, factory: Factory
 
 
 @router.post("/loans/{loan_id}/return", response_model=LoanOut)
-def guest_return_interlibrary(
-    loan_id: int, body: ReturnIn, subject: Subject, factory: Factory
-):
+def guest_return_interlibrary(loan_id: int, body: ReturnIn, subject: Subject, factory: Factory):
     with factory.begin() as session:
         workspace = guest_workspace(session, subject, utc_now(), lock=True)
         loan = owned_loan(session, workspace, loan_id)
