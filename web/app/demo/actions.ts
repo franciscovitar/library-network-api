@@ -19,3 +19,18 @@ export async function enterDemo() {
   await setGuestId(id);
   redirect("/demo");
 }
+
+/**
+ * Begin a different anonymous, PostgreSQL-backed library.
+ * Create the replacement BEFORE changing the browser capability: a capacity
+ * error must leave the visitor's existing session intact.
+ *
+ * This changes the active visitor capability, not the retention policy.
+ * Previous records remain until the separately authorized cleanup runs.
+ */
+export async function restartDemo() {
+  const nextId = randomUUID();
+  await serviceApi<GuestProfile>(`guest:${nextId}`, "/api/v2/guest/start", { method: "POST" });
+  await setGuestId(nextId);
+  redirect("/demo");
+}

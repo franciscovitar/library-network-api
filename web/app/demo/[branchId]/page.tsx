@@ -5,6 +5,7 @@ import { boundedSearch, positiveId } from "@/lib/input";
 import type { Overview, Loan } from "@/lib/types";
 import type { GuestProfile, GuestCatalog, GuestCopyPage, GuestMember } from "@/lib/guest-types";
 import { guestIssue, guestReturn } from "./actions";
+import { restartDemo } from "@/app/demo/actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Explorar biblioteca" };
@@ -66,6 +67,7 @@ export default async function GuestDashboard({
             <div className="page-action-group">
               <Link className="button button-primary" href={`/demo/${branch}/transfers`}>Operaciones entre sedes ↗</Link>
               <Link className="button button-outline" href="/">Acerca del producto ↗</Link>
+              <form action={restartDemo}><button type="submit" className="button button-outline">Crear otra biblioteca temporal</button></form>
             </div>
           </div>
           {feedback && <div role="status" className="feedback success">{feedback}</div>}
@@ -104,7 +106,7 @@ export default async function GuestDashboard({
               {!loan && <p className="empty-prompt">Podés consultar el préstamo creado en el paso anterior.</p>}
             </section>
           </div>
-          <div className="notice"><strong>Tu espacio es temporal</strong><span>Los datos son sintéticos. Tu acceso vence en 24 horas; las operaciones son persistentes mientras el espacio está activo. La limpieza de registros vencidos todavía debe implementarse antes de publicar.</span></div>
+          <div className="notice"><strong>Tu espacio es temporal</strong><span>Los datos son sintéticos y tu acceso vence en 24 horas. Crear otra biblioteca abre un espacio distinto, sin borrar ni invalidar el anterior. La limpieza transaccional de espacios vencidos existe, pero su programación automática sigue pendiente.</span></div>
         </div>
       </main>
     </div>
