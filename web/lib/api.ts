@@ -54,11 +54,19 @@ export async function staffSubject(): Promise<string> {
   return subject;
 }
 
-export async function staffApi<T>(path: string, init?: { body?: object; key?: string }): Promise<T> {
+export async function serviceApi<T>(
+  subject: string,
+  path: string,
+  init?: { body?: object; key?: string; method?: "GET" | "POST" },
+): Promise<T> {
   if (!path.startsWith("/api/v2/") || path.includes("//") || path.includes("..")) {
     throw new StaffApiError(500, "Ruta de API no permitida.");
   }
-  const subject = await staffSubject();
+  const guestPath = path.startsWith("/api/v2/guest/");
+  const guestSubject = /^guest:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(subject);
+  if ((guestPath && !guestSubject) || (!guestPath && guestSubject) || (!guestSubject && !/^github:[0-9]+$/.test(subject))) {
+    throw new StaffApiError(403, "La identidad no tiene acceso a esta API.");
+  }
   const bearer = await signedServiceToken(subject);
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -69,7 +77,7 @@ export async function staffApi<T>(path: string, init?: { body?: object; key?: st
   let response: Response;
   try {
     response = await fetch(apiOrigin() + path, {
-      method: init?.body ? "POST" : "GET",
+      method: init?.method ?? (init?.body ? "POST" : "GET"),
       headers,
       body: init?.body ? JSON.stringify(init.body) : undefined,
       cache: "no-store",
@@ -98,4 +106,8 @@ export async function staffApi<T>(path: string, init?: { body?: object; key?: st
     throw new StaffApiError(response.status, message);
   }
   return response.json() as Promise<T>;
+}
+
+export async function staffApi<T>(path: string, init?: { body?: object; key?: string }): Promise<T> {
+  return serviceApi<T>(await staffSubject(), path, init);
 }

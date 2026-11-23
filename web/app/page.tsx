@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { enterDemo } from "@/app/demo/actions";
 
 export default function Home() {
   return (
@@ -10,8 +11,9 @@ export default function Home() {
             <div className="eyebrow">PLATAFORMA DE OPERACIONES BIBLIOTECARIAS</div>
             <h1>Cada libro,<br /><em>en su lugar.</em></h1>
             <p className="landing-lede">Una plataforma para conectar catálogos, ejemplares y circulación entre sucursales. Menos tareas repetitivas. Más tiempo para las personas.</p>
-            <Link href="/login" className="button button-primary">Acceder al espacio de trabajo <span aria-hidden="true">↗</span></Link>
-            <p className="small-note">Acceso exclusivo para personal autorizado. Todavía no hay una demo pública con visitantes aislados.</p>
+            <form action={enterDemo}><button type="submit" className="button button-primary">Explorar la biblioteca sin registrarte <span aria-hidden="true">↗</span></button></form>
+            <p className="small-note">No necesitás cuenta ni contraseña. El sistema asigna un espacio temporal con datos sintéticos y operaciones reales.</p>
+            <Link href="/login" className="link-muted">Acceso para personal autorizado</Link>
           </section>
           <div className="landing-art" aria-hidden="true">
             <div className="landing-book book-a" /><div className="landing-book book-b" /><div className="landing-book book-c" />
