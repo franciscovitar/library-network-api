@@ -23,8 +23,8 @@ from app.api.schemas import (
 from app.application import Clock, utc_now
 from app.application.activate_loan import activate_loan
 from app.application.advance_transfer import advance_transfer
-from app.application.request_loan import request_interlibrary_loan
 from app.application.local_circulation import create_local_loan, return_local_loan
+from app.application.request_loan import request_interlibrary_loan
 from app.application.return_loan import return_loan
 from app.db import get_session_factory
 from app.persistence import queries
