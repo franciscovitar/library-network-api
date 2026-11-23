@@ -308,3 +308,46 @@ class StaffBranchGrant(Base):
     branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
     role: Mapped[str] = mapped_column(String(24))
     active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class DemoWorkspace(Base):
+    """A short-lived, isolated synthetic library owned by an opaque guest subject."""
+
+    __tablename__ = "demo_workspaces"
+    __table_args__ = (Index("ix_demo_workspaces_expires_at", "expires_at"),)
+
+    id: Mapped[int] = _id()
+    subject: Mapped[str] = mapped_column(String(50), unique=True)
+    created_at: Mapped[datetime] = _tstz()
+    expires_at: Mapped[datetime] = _tstz()
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+
+class DemoWorkspaceBranch(Base):
+    """One branch belongs to exactly one guest workspace, never shared."""
+
+    __tablename__ = "demo_workspace_branches"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "branch_id", name="uq_demo_workspace_branches_pair"),
+        UniqueConstraint("branch_id", name="uq_demo_workspace_branches_branch_id"),
+        Index("ix_demo_workspace_branches_workspace_id", "workspace_id"),
+    )
+
+    id: Mapped[int] = _id()
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("demo_workspaces.id"))
+    branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
+
+
+class DemoWorkspaceMember(Base):
+    """A synthetic member belongs to exactly one guest workspace."""
+
+    __tablename__ = "demo_workspace_members"
+    __table_args__ = (
+        UniqueConstraint("member_id", name="uq_demo_workspace_members_member_id"),
+        UniqueConstraint("workspace_id", "member_id", name="uq_demo_workspace_members_pair"),
+        Index("ix_demo_workspace_members_workspace_id", "workspace_id"),
+    )
+
+    id: Mapped[int] = _id()
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("demo_workspaces.id"))
+    member_id: Mapped[int] = mapped_column(ForeignKey("members.id"))
