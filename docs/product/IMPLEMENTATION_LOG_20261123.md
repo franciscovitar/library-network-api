@@ -9,3 +9,10 @@
 - Environment: library backend not publicly authenticated; do not publish any write-enabled API until authentication/branch authorization and abuse controls pass negative tests.
 - First technical objective: preserve the interlibrary domain and implement a bounded operational API vertical slice, with real database tests.
 - QA fields: static checks — NOT_RUN; PostgreSQL tests — NOT_RUN until CI; browser E2E — NOT_RUN; deployment — NOT_AUTHORIZED.
+
+## First verified backend checkpoint
+
+- Local circulation code introduced with Alembic `0002` and new real-DB API tests.
+- GitHub Actions run [45231705559](https://github.com/franciscovitar/library-network-api/actions/runs/45231705559), commit `c01db4d03dd8be5f26e6703f48f78acbd0bf819b`: **139 passed**, Ruff lint/format PASS, PostgreSQL integration guard PASS. This is a code/CI observation, not a deployment or browser acceptance.
+- Catalog search and availability per branch added afterward; must have its own new commit-linked CI result before PASS.
+- UI, staff authentication, branch roles, multi-tenant/public sandbox and hosted API remain NOT_IMPLEMENTED / NOT_RUN.
