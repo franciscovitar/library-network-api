@@ -16,6 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from app.domain.states import IdempotentOperation
 from app.persistence.models import (
     Book,
     Branch,
@@ -27,6 +28,7 @@ from app.persistence.models import (
     IdempotencyRecord,
     Loan,
     Member,
+    Transfer,
 )
 
 WORKSPACE_TTL = timedelta(hours=24)
@@ -125,6 +127,39 @@ def owned_loan(session: Session, workspace: DemoWorkspace, loan_id: int) -> Loan
     if loan is None:
         raise HTTPException(status_code=404, detail="Loan not found")
     return loan
+
+
+
+def owned_workspace_copy(
+    session: Session, workspace: DemoWorkspace, copy_id: int
+) -> Copy:
+    """A transfer may move a guest copy, but never outside its own workspace."""
+    copy = session.scalar(
+        select(Copy)
+        .join(DemoWorkspaceBranch, DemoWorkspaceBranch.branch_id == Copy.owning_branch_id)
+        .where(
+            DemoWorkspaceBranch.workspace_id == workspace.id,
+            Copy.id == copy_id,
+        )
+    )
+    if copy is None:
+        raise HTTPException(status_code=404, detail="Copy not found")
+    owned_branch(session, workspace, copy.current_branch_id)
+    return copy
+
+
+def owned_transfer(session: Session, workspace: DemoWorkspace, transfer_id: int) -> Transfer:
+    """Authorize the actual transfer and its loan before any state transition."""
+    transfer = session.get(Transfer, transfer_id)
+    if transfer is None:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+    loan = owned_loan(session, workspace, transfer.loan_id)
+    owned_branch(session, workspace, loan.origin_branch_id)
+    owned_branch(session, workspace, transfer.origin_branch_id)
+    owned_branch(session, workspace, transfer.destination_branch_id)
+    owned_member(session, workspace, loan.member_id)
+    owned_workspace_copy(session, workspace, loan.copy_id)
+    return transfer
 
 
 def workspace_branch_ids(session: Session, workspace: DemoWorkspace) -> list[int]:
@@ -242,11 +277,12 @@ def ensure_guest_loan_quota(
     *,
     workspace: DemoWorkspace,
     scoped_key: str,
+    operation: IdempotentOperation = IdempotentOperation.LOCAL_REQUEST,
 ) -> None:
     """Allow exact idempotent retries while bounding new guest loan creation."""
     previous = session.scalar(
         select(IdempotencyRecord.id).where(
-            IdempotencyRecord.operation == "LOCAL_REQUEST",
+            IdempotencyRecord.operation == operation.value,
             IdempotencyRecord.key == scoped_key,
         )
     )

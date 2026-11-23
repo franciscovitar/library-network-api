@@ -15,7 +15,15 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import sessionmaker
 
-from app.api.schemas import LoanOut, LocalLoanRequestIn, LocalReturnIn
+from app.api.schemas import (
+    LoanOut,
+    LoanRequestIn,
+    LocalLoanRequestIn,
+    LocalReturnIn,
+    ReturnIn,
+    TransferDetail,
+    TransitionIn,
+)
 from app.application import utc_now
 from app.application.guest_workspace import (
     ensure_guest_loan_quota,
@@ -24,17 +32,25 @@ from app.application.guest_workspace import (
     owned_copy,
     owned_loan,
     owned_member,
+    owned_transfer,
+    owned_workspace_copy,
+    workspace_branch_ids,
     start_guest_workspace,
 )
+from app.application.activate_loan import activate_loan
+from app.application.advance_transfer import advance_transfer
 from app.application.local_circulation import create_local_loan, return_local_loan
+from app.application.request_loan import request_interlibrary_loan
+from app.application.return_loan import return_loan
 from app.db import get_session_factory
-from app.domain.states import CopyStatus
+from app.domain.states import CopyStatus, IdempotentOperation
 from app.persistence.models import (
     Book,
     Branch,
     Copy,
     DemoWorkspaceBranch,
     DemoWorkspaceMember,
+    Loan,
     Member,
 )
 from app.persistence.overview import get_branch_overview
@@ -290,3 +306,114 @@ def guest_return(
             now=utc_now(),
         )
         return LoanOut.model_validate(result)
+
+
+# --- Interlibrary guest operations (same transactional engine as the legacy V1 API) ----
+
+
+@router.get("/loans", response_model=list[LoanOut])
+def guest_loans(
+    subject: Subject,
+    factory: Factory,
+    limit: Annotated[int, Query(ge=1, le=50)] = 30,
+):
+    """List only loans with a destination branch owned by this guest."""
+    with factory() as session:
+        workspace = guest_workspace(session, subject, utc_now())
+        branches = workspace_branch_ids(session, workspace)
+        loans = session.scalars(
+            select(Loan)
+            .where(Loan.destination_branch_id.in_(branches))
+            .order_by(Loan.id.desc())
+            .limit(limit)
+        ).all()
+        return [LoanOut.model_validate(loan) for loan in loans]
+
+
+@router.post("/loans/interlibrary", response_model=LoanOut, status_code=201)
+def guest_interlibrary_request(
+    body: LoanRequestIn,
+    response: Response,
+    subject: Subject,
+    factory: Factory,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
+):
+    with factory.begin() as session:
+        workspace = guest_workspace(session, subject, utc_now(), lock=True)
+        owned_branch(session, workspace, body.destination_branch_id)
+        owned_member(session, workspace, body.member_id)
+        copy = owned_workspace_copy(session, workspace, body.copy_id)
+        owned_branch(session, workspace, copy.owning_branch_id)
+        scoped_key = sha256(
+            f"guest-interlibrary:{subject}:{body.destination_branch_id}:{idempotency_key}".encode()
+        ).hexdigest()
+        ensure_guest_loan_quota(
+            session,
+            workspace=workspace,
+            scoped_key=scoped_key,
+            operation=IdempotentOperation.INTERLIBRARY_REQUEST,
+        )
+        loan, created = request_interlibrary_loan(
+            session,
+            member_id=body.member_id,
+            copy_id=body.copy_id,
+            destination_branch_id=body.destination_branch_id,
+            idempotency_key=scoped_key,
+            now=utc_now(),
+        )
+        result = LoanOut.model_validate(loan)
+    response.status_code = 201 if created else 200
+    return result
+
+
+@router.get("/transfers/{transfer_id}", response_model=TransferDetail)
+def guest_transfer_detail(transfer_id: int, subject: Subject, factory: Factory):
+    with factory() as session:
+        workspace = guest_workspace(session, subject, utc_now())
+        return TransferDetail.model_validate(owned_transfer(session, workspace, transfer_id))
+
+
+@router.post("/transfers/{transfer_id}/transitions", response_model=TransferDetail)
+def guest_transfer_transition(
+    transfer_id: int,
+    body: TransitionIn,
+    subject: Subject,
+    factory: Factory,
+):
+    with factory.begin() as session:
+        workspace = guest_workspace(session, subject, utc_now(), lock=True)
+        owned_transfer(session, workspace, transfer_id)
+        return TransferDetail.model_validate(
+            advance_transfer(
+                session,
+                transfer_id=transfer_id,
+                next_status=body.next_status,
+                now=utc_now(),
+            )
+        )
+
+
+@router.post("/loans/{loan_id}/activate", response_model=LoanOut)
+def guest_activate_interlibrary(loan_id: int, subject: Subject, factory: Factory):
+    with factory.begin() as session:
+        workspace = guest_workspace(session, subject, utc_now(), lock=True)
+        loan = owned_loan(session, workspace, loan_id)
+        owned_branch(session, workspace, loan.origin_branch_id)
+        owned_member(session, workspace, loan.member_id)
+        owned_workspace_copy(session, workspace, loan.copy_id)
+        return LoanOut.model_validate(activate_loan(session, loan_id=loan_id, now=utc_now()))
+
+
+@router.post("/loans/{loan_id}/return", response_model=LoanOut)
+def guest_return_interlibrary(
+    loan_id: int, body: ReturnIn, subject: Subject, factory: Factory
+):
+    with factory.begin() as session:
+        workspace = guest_workspace(session, subject, utc_now(), lock=True)
+        loan = owned_loan(session, workspace, loan_id)
+        owned_branch(session, workspace, loan.origin_branch_id)
+        owned_member(session, workspace, loan.member_id)
+        owned_workspace_copy(session, workspace, loan.copy_id)
+        return LoanOut.model_validate(
+            return_loan(session, loan_id=loan_id, condition=body.condition, now=utc_now())
+        )
