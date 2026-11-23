@@ -163,7 +163,9 @@ def test_idempotency_key_is_scoped_to_user_and_branch(api, app_engine):
     assert scalar(app_engine, "SELECT count(*) FROM idempotency_records") == 2
 
 
-def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(api, app_engine, monkeypatch):
+def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(
+    api, app_engine, monkeypatch
+):
     """No mocked identity: signed RS256 -> FastAPI auth -> PostgreSQL branch authorization."""
     provision(app_engine, "signed-staff", branch=1)
     private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -184,9 +186,10 @@ def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(api, app_
     token = jwt.encode(claims, private, algorithm="RS256", headers={"kid": jwk["kid"]})
     headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": "signed-flow-1"}
     assert api.get(f"{SECURE}/me", headers=headers).json()["branches"][0]["branch_id"] == 1
-    assert api.get(
-        f"{SECURE}/catalog/search", params={"branch_id": 1}, headers=headers
-    ).status_code == 200
+    assert (
+        api.get(f"{SECURE}/catalog/search", params={"branch_id": 1}, headers=headers).status_code
+        == 200
+    )
 
     denied = api.post(
         f"{SECURE}/loans/local",
@@ -218,6 +221,7 @@ def test_signed_bearer_token_reaches_real_database_and_cannot_escalate(api, app_
         algorithm="RS256",
         headers={"kid": jwk["kid"]},
     )
-    assert api.get(
-        f"{SECURE}/me", headers={"Authorization": f"Bearer {wrong_audience}"}
-    ).status_code == 401
+    assert (
+        api.get(f"{SECURE}/me", headers={"Authorization": f"Bearer {wrong_audience}"}).status_code
+        == 401
+    )
