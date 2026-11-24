@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("starting another anonymous library preserves prior PostgreSQL records without reusing its cookie", async ({ browser }) => {
   const activeContext = await browser.newContext();
-  const previousContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
+  const previousContext = await browser.newContext();
   try {
     const page = await activeContext.newPage();
     await page.goto("/");
