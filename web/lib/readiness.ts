@@ -1,3 +1,24 @@
+/** One visitor-driven, read-only request that asks Render Free to wake the API. */
+export async function wakeApiFromBrowser(
+  origin: string,
+  signal?: AbortSignal,
+  fetcher: typeof fetch = fetch,
+): Promise<void> {
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "https:" || parsed.pathname !== "/" || parsed.search || parsed.hash) return;
+    await fetcher(parsed.origin + "/ready", {
+      method: "GET",
+      mode: "no-cors",
+      credentials: "omit",
+      cache: "no-store",
+      signal,
+    });
+  } catch {
+    // This is only a wake-up hint; the server-side readiness check decides when entry can proceed.
+  }
+}
+
 /** Only probes the public, read-only readiness endpoint. Never retries a mutation. */
 export async function probeReady(origin: string, timeoutMs: number, fetcher: typeof fetch = fetch): Promise<boolean> {
   try {
