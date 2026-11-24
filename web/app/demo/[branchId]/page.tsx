@@ -69,9 +69,9 @@ export default async function GuestDashboard({
           </div>
           {feedback && <div role="status" className={`feedback ${successful ? "success" : "error"}`}>{feedback}</div>}
           <nav className="guest-quick-actions" aria-label="Accesos rápidos">
-            <Link href="#catalogo"><span aria-hidden="true">▤</span><strong>Buscar libro</strong><small>Consultar disponibilidad</small></Link>
-            <Link href="#prestamos"><span aria-hidden="true">↗</span><strong>Prestar libro</strong><small>Registrar una salida</small></Link>
-            <Link href="#devoluciones"><span aria-hidden="true">↙</span><strong>Devolver libro</strong><small>Ver préstamos activos</small></Link>
+            <a href="#catalogo"><span aria-hidden="true">▤</span><strong>Buscar libro</strong><small>Consultar disponibilidad</small></a>
+            <a href="#prestamos"><span aria-hidden="true">↗</span><strong>Prestar libro</strong><small>Registrar una salida</small></a>
+            <a href="#devoluciones"><span aria-hidden="true">↙</span><strong>Devolver libro</strong><small>Ver préstamos activos</small></a>
             <Link href={`/demo/${branch}/transfers`} aria-label="Operaciones entre sedes"><span aria-hidden="true">⇄</span><strong>Solicitar traslado</strong><small>Enviar a otra sucursal</small></Link>
           </nav>
           <section className="stat-grid" aria-label="Estado actual de esta sucursal">
@@ -79,9 +79,9 @@ export default async function GuestDashboard({
               <div className="stat-card" key={String(label)}><span className="stat-label">{label}</span><strong className="stat-value">{value}</strong><span className="stat-caption">En esta sucursal</span></div>
             ))}
           </section>
-          <form id="catalogo" className="search-panel" action={`/demo/${branch}`} method="GET">
+          <form id="catalogo" className="search-panel" action={`/demo/${branch}#catalogo`} method="GET">
             <label htmlFor="guest-search">Buscar en el catálogo</label>
-            <div className="search-controls"><input id="guest-search" name="q" placeholder="Título o autor, ej.: atlas" defaultValue={q} maxLength={100}/><button className="button button-primary" type="submit">Buscar</button>{q && <Link href={`/demo/${branch}#catalogo`} className="button button-outline">Limpiar</Link>}</div>
+            <div className="search-controls"><input id="guest-search" name="q" placeholder="Título o autor, ej.: atlas" defaultValue={q} maxLength={100}/><button className="button button-primary" type="submit">Buscar</button>{q && <a href={`/demo/${branch}#catalogo`} className="button button-outline">Limpiar</a>}</div>
           </form>
           <section className="panel table-panel"><div className="panel-heading"><div><div className="eyebrow">CATÁLOGO OPERATIVO</div><h2>Libros de esta sucursal</h2></div><span className="record-count">{catalog.total} títulos</span></div>
             <div className="table-scroll"><table><thead><tr><th>Título</th><th>Autor</th><th>Ejemplares</th><th>Disponibles</th></tr></thead><tbody>

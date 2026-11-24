@@ -25,7 +25,8 @@
       "feat/library-network-product-foundation-20261123": false,
       "feat/library-network-qa-prep-20261123": false,
       "feat/library-network-zero-cost-qa-20261123": false,
-      "feat/library-network-ux-polish-20261124": false
+      "feat/library-network-ux-polish-20261124": false,
+      "fix/library-demo-startup-navigation-20261124": false
     }
   }
 }
