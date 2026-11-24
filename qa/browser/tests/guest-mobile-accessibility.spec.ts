@@ -22,7 +22,9 @@ test("guest journey fits a mobile viewport and works from the keyboard", async (
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/demo\/\d+(?:\?|$)/);
   await expect(page.getByRole("main")).toBeVisible();
-  await expect(page.getByLabel(/socio/i)).toBeVisible();
+  await expect(page.getByLabel("Socio", { exact: true })).toBeVisible();
+  await expect(page.locator("#guest-member option").first()).toHaveText(/Sofía Martínez/);
+  await expect(page.getByRole("navigation", { name: "Operaciones" })).toBeVisible();
   await expect(page.getByLabel(/ejemplar disponible/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { enterDemo } from "@/app/demo/actions";
+import PendingButton from "@/components/PendingButton";
 
 export default function Home() {
   return (
@@ -10,8 +11,8 @@ export default function Home() {
           <section>
             <div className="eyebrow">PLATAFORMA DE OPERACIONES BIBLIOTECARIAS</div>
             <h1>Cada libro,<br /><em>en su lugar.</em></h1>
-            <p className="landing-lede">Una plataforma para conectar catálogos, ejemplares y circulación entre sucursales. Menos tareas repetitivas. Más tiempo para las personas.</p>
-            <form action={enterDemo}><button type="submit" className="button button-primary">Explorar la biblioteca sin registrarte <span aria-hidden="true">↗</span></button></form>
+            <p className="landing-lede">Probá cómo funciona una biblioteca conectada: consultá el catálogo, prestá y devolvé libros, y coordiná traslados entre sucursales.</p>
+            <form action={enterDemo}><PendingButton className="button button-primary" pendingLabel="Preparando tu biblioteca…">Explorar la biblioteca sin registrarte <span aria-hidden="true">↗</span></PendingButton></form>
             <p className="small-note">No necesitás cuenta ni contraseña. El sistema asigna un espacio temporal con datos sintéticos y operaciones reales.</p>
             <Link href="/login" className="link-muted">Acceso para personal autorizado</Link>
           </section>
