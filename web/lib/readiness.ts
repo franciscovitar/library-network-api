@@ -13,15 +13,15 @@ export async function probeReady(origin: string, timeoutMs: number, fetcher: typ
 
 export async function pollReadiness(
   probe: (timeoutMs: number) => Promise<boolean>,
-  // Render Free spin-up can take 50s+; the API then applies DB migrations before it can answer.
-  // Allow enough attempts for the provider wake-up and API startup, without a permanent keep-alive.
+  // Render Free spin-up can take about a minute; the API then applies DB migrations before it can answer.
+  // Keep each read-only readiness request alive long enough for one cold start; do not add a keep-alive.
   { budgetMs = 150_000, maxAttempts = 51, delayMs = 3_000 } = {},
 ): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const remaining = deadline - Date.now();
     if (remaining <= 0) break;
-    if (await probe(Math.max(1, Math.min(8_000, remaining)))) return true;
+    if (await probe(Math.max(1, Math.min(75_000, remaining)))) return true;
     const pause = Math.min(delayMs, deadline - Date.now());
     if (attempt + 1 < maxAttempts && pause > 0) await new Promise(resolve => setTimeout(resolve, pause));
   }
