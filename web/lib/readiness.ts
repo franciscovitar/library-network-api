@@ -13,7 +13,9 @@ export async function probeReady(origin: string, timeoutMs: number, fetcher: typ
 
 export async function pollReadiness(
   probe: (timeoutMs: number) => Promise<boolean>,
-  { budgetMs = 60_000, maxAttempts = 16, delayMs = 3_000 } = {},
+  // Render Free spin-up can take 50s+; the API then applies DB migrations before it can answer.
+  // Allow enough attempts for the provider wake-up and API startup, without a permanent keep-alive.
+  { budgetMs = 150_000, maxAttempts = 51, delayMs = 3_000 } = {},
 ): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
