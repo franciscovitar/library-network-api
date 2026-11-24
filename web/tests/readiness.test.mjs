@@ -24,3 +24,21 @@ test("polling recovers from transient failures and is bounded", async () => {
   assert.equal(await pollReadiness(async () => { attempts++; return false; }, { delayMs: 0, maxAttempts: 3 }), false);
   assert.equal(attempts, 3);
 });
+
+test("waits past one minute for Render Free spin-up plus API startup", async () => {
+  const realNow = Date.now;
+  let currentTime = 1_000;
+  Date.now = () => currentTime;
+  try {
+    let attempts = 0;
+    const ready = await pollReadiness(async () => {
+      attempts++;
+      currentTime += 3_000;
+      return currentTime >= 91_000;
+    }, { delayMs: 0 });
+    assert.equal(ready, true);
+    assert.equal(attempts, 30);
+  } finally {
+    Date.now = realNow;
+  }
+});
