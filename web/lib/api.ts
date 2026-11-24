@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { importPKCS8, SignJWT } from "jose";
 import { redirect } from "next/navigation";
+import { pollReadiness, probeReady } from "@/lib/readiness";
 
 /** Only server components/actions call this module; no bearer or key reaches a browser. */
 export class StaffApiError extends Error {
@@ -24,6 +25,16 @@ function apiOrigin(): string {
     throw new StaffApiError(503, "La configuración de API no es válida.");
   }
   return parsed.origin;
+}
+
+// Coalesce concurrent warm-up requests within this server process. No periodic keep-alive.
+let waking: Promise<boolean> | undefined;
+export function waitForApiReady(): Promise<boolean> {
+  if (!waking) {
+    const origin = apiOrigin();
+    waking = pollReadiness(timeout => probeReady(origin, timeout)).finally(() => { waking = undefined; });
+  }
+  return waking;
 }
 
 async function signedServiceToken(subject: string): Promise<string> {

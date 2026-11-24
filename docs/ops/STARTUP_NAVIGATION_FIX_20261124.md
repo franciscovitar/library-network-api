@@ -1,0 +1,5 @@
+# Public demo startup and navigation
+
+Observed: Render Free backend shut down after idle; frontend returned 502 during anonymous entry (digest 1617491422), including after the UI deployment. Opening the public backend readiness URL triggered the provider loading screen; user then accessed the new demo. The frontend now warms readiness once when the landing page mounts and coalesces requests within its process. The read-only readiness check is bounded to about one minute, recognizes JSON readiness rather than HTML loading pages, and never repeats circulation mutations. Entry handles temporary failures in the landing page; guest reads may retry once after readiness. No permanent pings, provider/plan changes, database changes or new dependencies. The provider loading page for a sleeping frontend remains unavoidable with the current hosting.
+
+Sidebar highlights native fragment navigation, quick links and browser history; catalog search retains its anchor. Browser and unit regression tests included. Live cold-start behavior must be checked separately from CI.

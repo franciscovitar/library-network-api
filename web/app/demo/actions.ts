@@ -2,20 +2,28 @@
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { serviceApi, StaffApiError } from "@/lib/api";
+import { serviceApi, StaffApiError, waitForApiReady } from "@/lib/api";
 import { guestId, setGuestId } from "@/lib/guest-session";
 import type { GuestProfile } from "@/lib/guest-types";
 
 export async function enterDemo() {
   let id = await guestId();
   if (!id) id = randomUUID();
+  let failure: "unavailable" | "quota" | null = null;
   try {
-    await serviceApi<GuestProfile>(`guest:${id}`, "/api/v2/guest/start", { method: "POST" });
+    if (!await waitForApiReady()) throw new StaffApiError(503, "Servicio iniciando.");
+    try {
+      await serviceApi<GuestProfile>(`guest:${id}`, "/api/v2/guest/start", { method: "POST" });
+    } catch (error) {
+      if (!(error instanceof StaffApiError) || error.status !== 410) throw error;
+      id = randomUUID();
+      await serviceApi<GuestProfile>(`guest:${id}`, "/api/v2/guest/start", { method: "POST" });
+    }
   } catch (error) {
-    if (!(error instanceof StaffApiError) || error.status !== 410) throw error;
-    id = randomUUID();
-    await serviceApi<GuestProfile>(`guest:${id}`, "/api/v2/guest/start", { method: "POST" });
+    if (!(error instanceof StaffApiError)) throw error;
+    failure = error.status === 429 ? "quota" : "unavailable";
   }
+  if (failure) redirect(`/?notice=${failure}`);
   await setGuestId(id);
   redirect("/demo");
 }

@@ -1,0 +1,27 @@
+/** Only probes the public, read-only readiness endpoint. Never retries a mutation. */
+export async function probeReady(origin: string, timeoutMs: number, fetcher: typeof fetch = fetch): Promise<boolean> {
+  try {
+    const response = await fetcher(origin + "/ready", {
+      cache: "no-store", redirect: "error", headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) return false;
+    const data: unknown = await response.json();
+    return !!data && typeof data === "object" && "status" in data && data.status === "ready";
+  } catch { return false; }
+}
+
+export async function pollReadiness(
+  probe: (timeoutMs: number) => Promise<boolean>,
+  { budgetMs = 60_000, maxAttempts = 16, delayMs = 3_000 } = {},
+): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    if (await probe(Math.max(1, Math.min(8_000, remaining)))) return true;
+    const pause = Math.min(delayMs, deadline - Date.now());
+    if (attempt + 1 < maxAttempts && pause > 0) await new Promise(resolve => setTimeout(resolve, pause));
+  }
+  return false;
+}

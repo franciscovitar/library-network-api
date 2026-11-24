@@ -206,7 +206,7 @@ td strong { display: block; color: var(--ink); font-weight: 700; }
 /* Public guest workspace: task-oriented navigation, readable forms, progress. */
 .guest-shell { --border: #dbe3da; font-size: 15px; }
 .guest-shell .sidebar-brand { margin-bottom: 36px; }
-.guest-shell .guest-nav-current { background: #d3e5da; color: #174b42; font-weight: 700; }
+.guest-shell .guest-nav-current { background: #c4dbce; color: #174b42; font-weight: 700; box-shadow: inset 3px 0 #245e50; }
 .guest-branches { margin-top: 28px; padding-top: 20px; border-top: 1px solid #cbd9ce; }
 .guest-branch-list { display: grid; gap: 7px; padding: 0 9px; }
 .guest-branch-list .branch-link { font-size: 13px; padding: 9px 12px; min-height: 40px; display: flex; justify-content: space-between; align-items: center; }
