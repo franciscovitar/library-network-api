@@ -2,7 +2,7 @@
 
 **ID:** LIBRARY-PUBLIC-NO-LOGIN-20261123  
 **Date:** 2026-11-23 · Argentina  
-**Owner decision:** APPROVED_DIRECTION / IMPLEMENTATION_IN_PROGRESS / NOT_DEPLOYED  
+**Owner decision:** APPROVED_DIRECTION / PORTFOLIO_RELEASE_IN_PROGRESS (current release status: see PR #7)  
 **Repo:** `franciscovitar/library-network-api`, feature PR #4  
 **PAS main verified at this decision:** `545aa9def3993be579a333b750739c3558441218`  
 **Classification:** PROJECT / product decision, no real library or patron data.
@@ -60,3 +60,12 @@ This **supersedes only the UX assumption** in `docs/adr/0005-nextjs-bff-identity
 - Existing PAS Genova skill and permission policy at recorded canonical SHA; repository code at actual PR commit.
 
 **Definition of Done:** recruiter can enter and perform real, persistent, isolation-safe actions without login; maintainers have evidence-linked automated and browser QA, cost controls and lifecycle cleanup; portfolio links to the functioning product rather than a simulation.
+
+
+## Portfolio release scope — owner update (2026-11-24)
+
+The owner authorized a public portfolio release using only existing Aiven Free and Render Free services. Remove the temporary Basic Auth gate from the web experience. Any visitor may enter and use the synthetic guest demo without an account, password or signup. This updates the earlier do-not-publish release gate for this bounded portfolio scenario.
+
+The following frictionless safeguards remain in force: a server-only BFF signing key, short-lived signed service tokens, HttpOnly guest capability cookies, verified Origin/Host handling, random per-visitor identities, PostgreSQL-scoped workspaces and existing per-visitor product quotas. The browser receives no database credentials, signing key or staff role. Staff routes still require staff JWT/RBAC.
+
+Accepted limits: no added WAF, external IP-rate-limit provider or new infrastructure; only synthetic records are exposed. This is not a production service. Render cold starts/free quotas and Aiven's free database limits are documented in the [zero-cost hosting guide](../ops/ZERO_COST_HOSTED_QA_20261123.md). No Vercel project, Production deployment, existing library-network-showcase, client environment or billing settings are in scope.

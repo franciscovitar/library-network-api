@@ -1,12 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-const qaHttpCredentials = {
-  username: process.env.QA_GATE_USERNAME ?? "",
-  password: process.env.QA_GATE_PASSWORD ?? "",
-};
-
 test("starting another anonymous library preserves prior PostgreSQL records without reusing its cookie", async ({ browser }) => {
-  const activeContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
+  const activeContext = await browser.newContext();
   const previousContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
   try {
     const page = await activeContext.newPage();

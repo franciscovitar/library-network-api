@@ -82,7 +82,7 @@ export async function serviceApi<T>(
       body: init?.body ? JSON.stringify(init.body) : undefined,
       cache: "no-store",
       redirect: "error",
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(75000),
     });
   } catch {
     throw new StaffApiError(503, "No se pudo conectar con Library Network.");

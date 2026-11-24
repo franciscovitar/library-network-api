@@ -1,18 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 const root = "http://127.0.0.1:3000";
-const qaHttpCredentials = {
-  username: process.env.QA_GATE_USERNAME ?? "",
-  password: process.env.QA_GATE_PASSWORD ?? "",
-};
-
-test("QA gate rejects requests without credentials", async () => {
-  const response = await fetch(root);
-  expect(response.status).toBe(401);
-});
-
 test("recruiter enters without app login, lends/returns a real copy and stays isolated", async ({ browser }) => {
-  const firstContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
+  const firstContext = await browser.newContext();
   const secondContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
   try {
     const first = await firstContext.newPage();
