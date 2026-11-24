@@ -11,11 +11,21 @@ from sqlalchemy.orm import sessionmaker
 
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
-    """One engine per process; never share sessions across requests."""
+    """One engine per process; never share sessions across requests.
+
+    A small pool keeps a single process from exhausting free PostgreSQL services.
+    This is not a global connection cap: hosted QA must also bound instance count.
+    """
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL is required")
-    return create_engine(database_url, pool_pre_ping=True)
+    return create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_size=2,
+        max_overflow=1,
+        pool_timeout=5,
+    )
 
 
 def get_session_factory(engine: Engine = Depends(get_engine)) -> sessionmaker:

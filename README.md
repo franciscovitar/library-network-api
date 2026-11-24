@@ -1,18 +1,13 @@
-# Library Network API
+# Library Network
 
-> **Canonical product decision (23 Nov 2026):** [Real recruiter-facing app with no login](docs/product/DECISION_PUBLIC_NO_LOGIN_20261123.md). The visitor uses their own synthetic PostgreSQL workspace immediately, without OAuth, password, or signup. The former browser-only `showcase/` is historical and cannot replace the real application.
+> **Demo pública:** [library-network-qa-web.onrender.com](https://library-network-qa-web.onrender.com/) — sin cuenta, registro ni contraseña. Cada visitante recibe un espacio PostgreSQL con libros y socios ficticios; préstamos y devoluciones se guardan realmente y quedan aislados por visitante.
+>
+> **Stack:** Next.js BFF + FastAPI + PostgreSQL, alojado en Render Free y Aiven PostgreSQL Free. Límites, costos observados y comportamiento del nivel gratuito: [guía de despliegue y límites](docs/ops/ZERO_COST_HOSTED_QA_20261123.md).
+>
+> Es una demo de portfolio con datos sintéticos, no un servicio para bibliotecas reales. Los planes gratuitos pueden dormir, reiniciarse o suspenderse al agotar cuotas.
+> Si Render está despertando la API, el primer intento puede mostrar un error transitorio; esperá cerca de un minuto y reintentá. Las cuotas y demás límites están detallados en la guía.
 
-> **Development branch only:** [PR #4](https://github.com/franciscovitar/library-network-api/pull/4) adds signed anonymous BFF sessions, tenant-scoped local and interlibrary circulation, real dashboard, transactional cleanup and CI browser testing. This does **not** mean the web application has been deployed publicly. See the [current release and merge gates](docs/ops/RELEASE_READINESS_20261123.md) and the [implementation log](docs/product/IMPLEMENTATION_LOG_20261123.md).
-
-> **Safety:** Original unauthenticated `/api/v1` remains local-only and disabled by default. Existing `/api/v2` staff JWT/RBAC is retained for optional administration; `/api/v2/guest` is for BFF-signed, isolated guest subjects only. The linked `library-network-showcase` has a branch-scoped Git auto-deploy veto for `main` recorded in `showcase/vercel.json`, with an approved [showcase merge safety check](.github/workflows/showcase-merge-safety.yml) and a verified feature-branch skip probe. The full [merge and release gates](docs/ops/RELEASE_READINESS_20261123.md) still apply; no Production or paid services were modified.
-
-> **Product direction (21 Nov 2026):** evolve the real FastAPI/PostgreSQL backend into a usable **Library Network operations web application** for librarians and managers. The existing synthetic `showcase/` stays as engineering evidence but is not the future default UI. The approved goal, proposed architecture, security gaps, reuse map and Definition of Done are in [docs/PRODUCT_DIRECTION_V2.md](docs/PRODUCT_DIRECTION_V2.md). This is a target, **not** a currently hosted/authenticated API.
-
-**Status:** V1 merged into `main`; Checkpoint A verified by GitHub Actions. The [technical case study](docs/case-study.md) is published in this repository. The original academic TP was completed individually by Francisco Vitar (owner-confirmed; GitHub history is consistent). This is a **portfolio engineering lab**, not a production or hosted API.
-
-A deliberately bounded Python/FastAPI + PostgreSQL project to demonstrate safe interlibrary lending, transactional domain logic, concurrency, idempotency and verifiable testing.
-
-**Implemented:** the complete interlibrary loan lifecycle over a REST API (request -> outward transfer -> receipt -> activation -> borrower return -> return transfer -> closed), with one database transaction per command, `SELECT ... FOR UPDATE` row locks in a fixed order, `Idempotency-Key` support, the V1.1 relational schema with a reviewed Alembic migration, a deterministic synthetic seed, and integration tests on real PostgreSQL (lifecycle, GOOD/DAMAGED returns, state errors, rollback, concurrency). A deterministic end-to-end demo script and a CI workflow that refuses to pass when the PostgreSQL tests are skipped. **Not implemented:** publicly hosted **backend** or authentication; the FastAPI service is local-only. The [public interactive showcase](showcase/) is a separate static, synthetic browser model, not the real PostgreSQL engine. The case study documents academic origin and AI assistance; [the portfolio](https://franvitar.genovasite.com/work/library-network-api?lang=es) presents the project. See [Status and Checkpoint A](#status-and-checkpoint-a).
+A deliberately bounded Python/FastAPI + PostgreSQL project demonstrating interlibrary lending, transactional domain logic, concurrency, idempotency, tenant isolation and verifiable testing. The public application is the real web/BFF/API/PostgreSQL product; the historical showcase/ simulator remains separate engineering evidence.
 
 ## Public interactive showcase
 
@@ -137,7 +132,17 @@ CREATE UNIQUE INDEX uq_loans_copy_id_nonterminal ON loans (copy_id)
 
 It is both the integrity guard and a small, selective index (closed loans are excluded).
 
-## Status and Checkpoint A
+## Current public portfolio demo
+
+- Public web: https://library-network-qa-web.onrender.com/
+- API health: https://library-network-qa-api.onrender.com/ready
+- No visitor login, registration, password, or access request.
+- HTTPS requests go through the Next.js BFF. The BFF keeps signing credentials server-side and creates an isolated synthetic guest workspace; the API accepts signed service tokens, not browser-supplied roles or workspace IDs.
+- Borrow and return operations were verified against Aiven PostgreSQL from a fresh browser session. Detailed release evidence and accepted free-plan limits are in the hosting guide.
+
+The release remains a portfolio demo. It does not use Production, Vercel, real patron data, or paid infrastructure.
+
+## Historical status of the original API checkpoint
 
 Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/personal-ai-system/blob/professional/portfolio-library-network-architecture-20261118/AI/projects/library-network-api/ARCHITECTURE_V1.md):
 

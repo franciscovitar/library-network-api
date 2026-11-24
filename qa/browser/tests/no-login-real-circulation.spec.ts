@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const root = "http://127.0.0.1:3000";
-
-test("recruiter enters without login, lends/returns a real copy and stays isolated", async ({ browser }) => {
+test("recruiter enters without app login, lends/returns a real copy and stays isolated", async ({ browser }) => {
   const firstContext = await browser.newContext();
   const secondContext = await browser.newContext();
   try {
@@ -23,7 +22,6 @@ test("recruiter enters without login, lends/returns a real copy and stays isolat
     expect(Number(loanId)).toBeGreaterThan(0);
     await expect(first.getByRole("button", { name: /Confirmar devolución/ })).toBeVisible();
 
-    // A new recruiter's separate browser must not inherit the first workspace.
     const second = await secondContext.newPage();
     await second.goto(root);
     await second.getByRole("button", { name: /Explorar la biblioteca sin registrarte/ }).click();
@@ -40,7 +38,6 @@ test("recruiter enters without login, lends/returns a real copy and stays isolat
     await expect(stat).toHaveText("0");
     await expect(second.locator(".stat-grid .stat-card").first().locator(".stat-value")).toHaveText("0");
 
-    // Browser-side cookie mutation cannot impersonate a valid server session.
     const cookies = await firstContext.cookies();
     const guest = cookies.find((cookie) => cookie.name === "library_guest");
     expect(guest).toBeDefined();

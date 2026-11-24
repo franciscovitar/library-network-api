@@ -65,7 +65,7 @@ jobs:
         run: |
           cd qa/browser
           npm ci --no-audit --no-fund
-          npx playwright install chromium --with-deps --only-shell
+          npx playwright install chromium --only-shell
       - name: Generate synthetic-only RSA pair and guest cookie secret
         run: |
           python - <<'PY'
@@ -91,12 +91,16 @@ jobs:
               "alg": "RS256", "use": "sig",
               "n": b64(pub.n), "e": b64(pub.e),
           }]}
+          cookie_secret = secrets.token_hex(32)
+          escaped_pem = pem.replace("\n", "\\n")
+          for secret_value in (escaped_pem, cookie_secret):
+              print(f"::add-mask::{secret_value}")
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as target:
               target.write("LIBRARY_JWKS_JSON=" + json.dumps(jwks, separators=(",", ":")) + "\n")
-              target.write("LIBRARY_API_SIGNING_KEY_PKCS8=" + pem.replace("\n", "\\n") + "\n")
+              target.write("LIBRARY_API_SIGNING_KEY_PKCS8=" + escaped_pem + "\n")
               target.write("LIBRARY_API_SIGNING_KID=ci-temporary-guest\n")
-              target.write("LIBRARY_GUEST_COOKIE_SECRET=" + secrets.token_hex(32) + "\n")
-          print("Ephemeral signing/JWKS material created for disposable CI only.")
+              target.write("LIBRARY_GUEST_COOKIE_SECRET=" + cookie_secret + "\n")
+          print("Ephemeral signing/JWKS and guest-cookie material created for disposable CI only.")
           PY
       - name: Migrate disposable PostgreSQL and seed synthetic fixtures
         run: |

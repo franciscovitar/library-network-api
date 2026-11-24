@@ -73,3 +73,13 @@ jobs:
 
       - name: Fail unless the PostgreSQL tests ran (no skips)
         run: python scripts/ci/check_test_report.py test-report.xml --min-integration 100 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify documented local Docker demo
+        timeout-minutes: 5
+        run: |
+          set -e
+          trap 'docker compose logs --no-color; docker compose down -v' EXIT
+          docker compose up --build -d
+          curl --fail --retry 30 --retry-all-errors --retry-delay 2 --max-time 5 http://127.0.0.1:8000/ready
+          docker compose run --rm api python -m app.persistence.seed
+          python scripts/demo_scenario.py
