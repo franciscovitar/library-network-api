@@ -30,11 +30,15 @@ test("visitor wake request is one credential-free, read-only GET", async () => {
   assert.equal(request.options.headers, undefined);
 });
 
-test("visitor wake is limited to HTTPS origins and never blocks entry", async () => {
+test("visitor wake is limited to HTTPS root origins and never blocks entry", async () => {
   let calls = 0;
-  await wakeApiFromBrowser("http://api.example.com", undefined, async () => {
+  await wakeApiFromBrowser("https://api.example.com", undefined, async () => {
     calls++;
     throw new Error("network unavailable");
+  });
+  await wakeApiFromBrowser("http://api.example.com", undefined, async () => {
+    calls++;
+    return new Response();
   });
   await wakeApiFromBrowser("https://api.example.com/extra", undefined, async () => {
     calls++;
