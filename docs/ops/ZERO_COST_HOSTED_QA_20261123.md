@@ -32,6 +32,7 @@ Las cuentas se revisaron antes de crear recursos: no se añadió un medio de pag
 
 - Cada workspace tiene 750 horas de instancia gratis por mes, compartidas por los servicios Free. Si se agotan, Render suspende las instancias Free hasta el mes siguiente.
 - Un servicio Free se duerme luego de 15 minutos sin tráfico entrante y puede tardar cerca de un minuto en volver. La web y la API pueden arrancar en frío por separado.
+- La primera creación de una biblioteca puede mostrar un error transitorio si la API todavía está despertando. En la verificación QA observamos un primer 502; tras esperar a que la API respondiera y reintentar, el flujo completo de catálogo, préstamo y devolución funcionó. Conviene esperar alrededor de un minuto y reintentar si ocurre.
 - El build y la transferencia de salida tienen cuotas. Sin medio de pago, al alcanzar esos límites se suspenden servicios o nuevos builds; no se cambia automáticamente a un plan pago.
 - Las instancias tienen 512 MB RAM, menos de 1 CPU, sistema de archivos efímero y una sola instancia. Render puede reiniciarlas; no hay disco persistente, shell, escalado horizontal ni caché edge en Free.
 
