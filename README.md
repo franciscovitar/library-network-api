@@ -5,6 +5,7 @@
 > **Stack:** Next.js BFF + FastAPI + PostgreSQL, alojado en Render Free y Aiven PostgreSQL Free. Límites, costos observados y comportamiento del nivel gratuito: [guía de despliegue y límites](docs/ops/ZERO_COST_HOSTED_QA_20261123.md).
 >
 > Es una demo de portfolio con datos sintéticos, no un servicio para bibliotecas reales. Los planes gratuitos pueden dormir, reiniciarse o suspenderse al agotar cuotas.
+> Si Render está despertando la API, el primer intento puede mostrar un error transitorio; esperá cerca de un minuto y reintentá. Las cuotas y demás límites están detallados en la guía.
 
 A deliberately bounded Python/FastAPI + PostgreSQL project demonstrating interlibrary lending, transactional domain logic, concurrency, idempotency, tenant isolation and verifiable testing. The public application is the real web/BFF/API/PostgreSQL product; the historical showcase/ simulator remains separate engineering evidence.
 
