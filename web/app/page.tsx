@@ -7,7 +7,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ n
   const { notice } = await searchParams;
   return (
     <main className="landing">
-      <DemoWarmup/>
+      <DemoWarmup apiOrigin={process.env.LIBRARY_API_URL ?? ""}/>
       <div className="landing-frame">
         <header className="public-header"><span className="brand-mark">ln<span>·</span></span><span>Library Network</span><span className="public-nav">Gestión bibliotecaria</span></header>
         <div className="landing-grid">
