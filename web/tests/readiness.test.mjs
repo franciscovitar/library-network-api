@@ -25,6 +25,15 @@ test("polling recovers from transient failures and is bounded", async () => {
   assert.equal(attempts, 3);
 });
 
+test("keeps an individual readiness request alive for a Render Free cold start", async () => {
+  let probeTimeout = 0;
+  assert.equal(await pollReadiness(async timeoutMs => {
+    probeTimeout = timeoutMs;
+    return true;
+  }, { delayMs: 0 }), true);
+  assert.equal(probeTimeout, 75_000);
+});
+
 test("waits past one minute for Render Free spin-up plus API startup", async () => {
   const realNow = Date.now;
   let currentTime = 1_000;
