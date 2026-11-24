@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const root = "http://127.0.0.1:3000";
 test("recruiter enters without app login, lends/returns a real copy and stays isolated", async ({ browser }) => {
   const firstContext = await browser.newContext();
-  const secondContext = await browser.newContext({ httpCredentials: qaHttpCredentials });
+  const secondContext = await browser.newContext();
   try {
     const first = await firstContext.newPage();
     await first.goto(root);
