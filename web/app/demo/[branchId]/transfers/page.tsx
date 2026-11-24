@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { guestApi } from "@/lib/guest-api";
 import { positiveId } from "@/lib/input";
+import GuestNav from "@/components/GuestNav";
+import PendingButton from "@/components/PendingButton";
+import { memberLabel, copyLabel } from "@/lib/guest-display";
 import type { GuestProfile, GuestCopyPage, GuestMember } from "@/lib/guest-types";
 import {
   activateGuestLoan,
@@ -85,63 +88,56 @@ export default async function GuestTransfers({
   const notice = qs.notice && Object.hasOwn(noticeTexts, qs.notice) ? noticeTexts[qs.notice] : null;
   const branchName = (id: number) => profile.branches.find((b) => b.branch_id === id)?.name.split("· ").at(-1) ?? "Desconocida";
 
+  const stages = ["PREPARED", "DISPATCHED", "IN_TRANSIT", "RECEIVED"] as const;
+  const memberName = (id: number) => { const m = members.find(item => item.id === id); return m ? memberLabel(m.code) : "Socio de prueba"; };
   return (
-    <div className="workspace-shell">
-      <aside className="sidebar">
-        <Link href="/" className="sidebar-brand"><span className="brand-mark">ln<span>·</span></span> Library Network</Link>
-        <div className="sidebar-label">TU BIBLIOTECA DE PRUEBA</div>
-        <nav className="sidebar-nav" aria-label="Navegación">
-          <Link className="nav-link" href={`/demo/${branch}`}>◫ Resumen y préstamos</Link>
-          <Link className="nav-link" href={`/demo/${branch}/transfers`}>⇄ Red y traslados</Link>
-          {profile.branches.map((b) => <Link className="nav-link" key={b.branch_id} href={`/demo/${b.branch_id}`}>▤ {branchName(b.branch_id)}</Link>)}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="workspace-note"><strong>Operaciones auténticas</strong><span>Traslados y eventos guardados en PostgreSQL</span></div>
-        </div>
-      </aside>
+    <div className="workspace-shell guest-shell">
+      <GuestNav profile={profile} branch={branch} transfers/>
       <main className="workspace-main">
         <header className="workspace-header">
           <div className="breadcrumb"><span>Biblioteca temporal</span><span>/</span><strong>{branchName(branch)}</strong></div>
           <span className="role-badge">Sin registro · Datos aislados</span>
         </header>
         <div className="workspace-content">
-          <div className="page-heading">
+          <div className="page-heading guest-heading">
             <div>
               <div className="eyebrow">CIRCULACIÓN ENTRE SEDES / OPERACIONES REALES</div>
-              <h1>Un libro,<br/><em>dos sucursales.</em></h1>
-              <p>Solicitá un ejemplar de una sede a otra, seguí su traslado, activá el préstamo y completá su devolución. Cada transición se valida en el servidor y conserva su historial.</p>
+              <h1>Traslados entre sucursales</h1>
+              <p>Enviá un libro a otra sucursal, seguí su recorrido y registrá el regreso cuando el socio lo devuelva.</p>
             </div>
             <Link href={`/demo/${branch}`} className="button button-outline">Volver al resumen ↗</Link>
           </div>
           {notice && <div className={["requested","advanced","activated","returned"].includes(qs.notice ?? "") ? "feedback success" : "feedback error"} role="status">{notice}</div>}
-          <section className="panel">
-            <div className="panel-heading"><div><div className="eyebrow">01 / SOLICITAR UN EJEMPLAR</div><h2>Transferencia entre sucursales</h2></div><span className="step-ornament">↗</span></div>
-            <p className="panel-lede">En esta operación, <strong>{branchName(branch)}</strong> presta uno de sus ejemplares a la sede seleccionada. La solicitud genera un préstamo y un remito real.</p>
+          <nav className="guest-section-links" aria-label="Tareas de traslado"><a href="#solicitar">Nuevo traslado</a><a href="#seguimiento">Ver seguimiento ({allTransfers.length})</a></nav>
+          <section className="panel" id="solicitar">
+            <div className="panel-heading"><div><div className="eyebrow">01 / SOLICITAR UN EJEMPLAR</div><h2>Solicitar un traslado</h2></div><span className="step-ornament">↗</span></div>
+            <p className="panel-lede">Elegí el libro y la sucursal que lo recibirá. El origen es <strong>{branchName(branch)}</strong>.</p>
             <form action={requestGuestTransfer} className="field-stack">
               <input type="hidden" name="branch" value={branch} />
-              <label htmlFor="transfer-destination">Sucursales de destino</label>
+              <div className="guest-origin"><span>Origen</span><strong>{branchName(branch)}</strong><span aria-hidden="true">→</span></div>
+              <label htmlFor="transfer-destination">Sucursal de destino</label>
               <select id="transfer-destination" name="destination" required disabled={!destinations.length}>
                 {destinations.map((b) => <option key={b.branch_id} value={b.branch_id}>{branchName(b.branch_id)}</option>)}
               </select>
               <label htmlFor="transfer-member">Socio que solicita el libro</label>
-              <select id="transfer-member" name="member" required>{members.filter((m) => m.enabled).map((m) => <option key={m.id} value={m.id}>{m.code}</option>)}</select>
+              <select id="transfer-member" name="member" required>{members.filter((m) => m.enabled).map((m) => <option key={m.id} value={m.id}>{memberLabel(m.code)}</option>)}</select>
               <label htmlFor="transfer-copy">Ejemplar disponible en {branchName(branch)}</label>
               <select id="transfer-copy" name="copy" required disabled={!ownAvailable.length}>
-                {ownAvailable.map((c) => <option key={c.id} value={c.id}>{c.title} · {c.code.slice(-5)}</option>)}
+                {ownAvailable.map((c) => <option key={c.id} value={c.id}>{c.title} · {copyLabel(c.code)}</option>)}
               </select>
-              <p className="field-hint">El sistema comprueba permisos, ubicación y disponibilidad dentro de una única transacción PostgreSQL.</p>
-              <button className="button button-primary" type="submit" disabled={!destinations.length || !ownAvailable.length || !members.some((m) => m.enabled)}>
+              <p className="field-hint">Al confirmar, se reserva el ejemplar y comienza el seguimiento del envío.</p>
+              <PendingButton className="button button-primary" disabled={!destinations.length || !ownAvailable.length || !members.some((m) => m.enabled)}>
                 Solicitar traslado <span aria-hidden="true">↗</span>
-              </button>
+              </PendingButton>
             </form>
             {!ownAvailable.length && <p className="field-warning">No hay ejemplares disponibles para enviar desde esta sede. Podés elegir la otra sucursal.</p>}
           </section>
-          <section className="panel" style={{marginTop:24}}>
+          <section className="panel" id="seguimiento" style={{marginTop:24}}>
             <div className="panel-heading">
               <div><div className="eyebrow">02 / SEGUIMIENTO</div><h2>Préstamos entre sedes</h2></div>
               <span className="record-count">{allTransfers.length} operaciones</span>
             </div>
-            <p className="panel-lede">Las etapas son secuenciales: preparado → despachado → en tránsito → recibido. Una vez recibido, podés activar el préstamo y luego completar la devolución a la sede de origen.</p>
+            <p className="panel-lede">Cada envío avanza paso a paso. Cuando el libro llega, activá el préstamo; al devolverlo, completá el regreso.</p>
             {target && <Link href={`/demo/${branch}/transfers`} className="link-muted">← Ver todos los movimientos</Link>}
             {shown.length === 0 && <p className="empty-state">{target ? "La operación seleccionada no existe en tu espacio." : "Todavía no hay movimientos. Generá una solicitud arriba para comenzar."}</p>}
             {shown.map((loan) => {
@@ -155,7 +151,7 @@ export default async function GuestTransfers({
                     <div><div className="eyebrow">PRÉSTAMO #{loan.id}</div><h2>{branchName(loan.origin_branch_id)} → {branchName(loan.destination_branch_id)}</h2></div>
                     <span className="pill pill-muted">{statusName[loan.status] ?? loan.status}</span>
                   </div>
-                  <p className="field-hint">Ejemplar #{loan.copy_id} · Socio {members.find((m) => m.id === loan.member_id)?.code ?? "registrado"}</p>
+                  <p className="field-hint">{copies.items.find(c => c.id === loan.copy_id)?.title ?? `Ejemplar #${loan.copy_id}`} · {memberName(loan.member_id)}</p>
                   {transfers.map((tr) => {
                     const next = step[tr.status];
                     return (
@@ -164,12 +160,13 @@ export default async function GuestTransfers({
                           <span>{tr.direction === "OUTBOUND" ? "Envío" : "Regreso"} #{tr.id} · {branchName(tr.origin_branch_id)} → {branchName(tr.destination_branch_id)}</span>
                           <strong>{statusName[tr.status] ?? tr.status}</strong>
                         </div>
+                        <ol className="guest-progress" aria-label="Etapas del traslado">{stages.map((stageName, i) => <li key={stageName} className={i < stages.indexOf(tr.status) ? "done" : i === stages.indexOf(tr.status) ? "current" : ""} aria-current={stageName === tr.status ? "step" : undefined}><span aria-hidden="true">{i < stages.indexOf(tr.status) ? "✓" : i + 1}</span>{statusName[stageName]}</li>)}</ol>
                         {next && <form action={advanceGuestTransfer}>
                           <input type="hidden" name="branch" value={branch} />
                           <input type="hidden" name="transfer" value={tr.id} />
                           <input type="hidden" name="loan" value={loan.id} />
                           <input type="hidden" name="next" value={next.next} />
-                          <button type="submit" className="button button-outline">{next.label} ↗</button>
+                          <PendingButton className="button button-primary">{next.label} ↗</PendingButton>
                         </form>}
                       </div>
                     );
@@ -177,7 +174,7 @@ export default async function GuestTransfers({
                   {canActivate && <form action={activateGuestLoan}>
                     <input type="hidden" name="branch" value={branch} />
                     <input type="hidden" name="loan" value={loan.id} />
-                    <button className="button button-primary" type="submit">Activar préstamo recibido ↗</button>
+                    <PendingButton className="button button-primary">Activar préstamo recibido ↗</PendingButton>
                   </form>}
                   {loan.status === "ACTIVE" && <form className="field-stack field-separated" action={returnGuestInterlibraryLoan}>
                     <input type="hidden" name="branch" value={branch} />
@@ -186,14 +183,14 @@ export default async function GuestTransfers({
                     <select id={`condition-${loan.id}`} name="condition">
                       <option value="GOOD">Buen estado</option><option value="DAMAGED">Dañado · se retira del catálogo al completar el regreso</option>
                     </select>
-                    <button className="button button-primary" type="submit">Registrar devolución ↙</button>
+                    <PendingButton className="button button-primary">Registrar devolución ↙</PendingButton>
                   </form>}
                   {loan.status === "CLOSED" && <div className="notice"><strong>Operación completada</strong><span>El ejemplar regresó a su origen y el préstamo se cerró en PostgreSQL.</span></div>}
                 </article>
               );
             })}
           </section>
-          <p className="small-note">Espacio sintético individual con operaciones persistentes. El historial de movimientos no se inventa en el navegador.</p>
+          <p className="small-note">Los movimientos se guardan en tu biblioteca temporal. No afectan a otros visitantes.</p>
         </div>
       </main>
     </div>

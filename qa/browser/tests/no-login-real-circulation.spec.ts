@@ -29,8 +29,10 @@ test("recruiter enters without app login, lends/returns a real copy and stays is
     expect(new URL(second.url()).pathname).not.toBe(new URL(firstUrl).pathname);
     await expect(second.locator(".stat-grid .stat-card").first().locator(".stat-value")).toHaveText("0");
 
-    await first.reload();
+    await first.goto(firstUrl);
     await expect(stat).toHaveText("1");
+    await expect(first.locator(".guest-loan").first()).toContainText("Sofía Martínez");
+    await expect(first.locator(".guest-loan").first()).not.toContainText("Ejemplar #");
     await first.getByRole("button", { name: /Confirmar devolución/ }).click();
     await expect(first).toHaveURL(/notice=returned/);
     await expect(stat).toHaveText("0");

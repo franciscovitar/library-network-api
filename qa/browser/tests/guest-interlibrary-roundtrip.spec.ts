@@ -6,7 +6,8 @@ test("a recruiter completes real cross-branch logistics without creating an acco
   await expect(page).toHaveURL(/\/demo\/\d+(?:\?|$)/);
 
   await page.getByRole("link", { name: /Operaciones entre sedes/ }).click();
-  await expect(page.getByRole("heading", { name: /Un libro,/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Traslados entre sucursales/ })).toBeVisible();
+  await expect(page.locator("#transfer-member option").first()).toHaveText(/Sofía Martínez/);
   await page.getByRole("button", { name: /Solicitar traslado/ }).click();
   await expect(page).toHaveURL(/notice=requested/);
   await expect(page.getByRole("heading", { name: /Préstamos entre sedes/ })).toBeVisible();
@@ -15,6 +16,7 @@ test("a recruiter completes real cross-branch logistics without creating an acco
   await page.getByRole("button", { name: /Confirmar despacho/ }).click();
   await expect(page).toHaveURL(/notice=advanced/);
   await expect(page.locator(".transfer-item").first()).toContainText("Despachado");
+  await expect(page.locator(".guest-progress [aria-current=step]").first()).toContainText("Despachado");
   await page.reload();
   await expect(page.getByRole("button", { name: /Marcar en tránsito/ })).toBeVisible();
   await page.getByRole("button", { name: /Marcar en tránsito/ }).click();
