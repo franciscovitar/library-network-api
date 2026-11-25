@@ -144,7 +144,7 @@ The release remains a portfolio demo. It does not use Production, Vercel, real p
 
 ## Historical status of the original API checkpoint
 
-Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/personal-ai-system/blob/professional/portfolio-library-network-architecture-20261118/AI/projects/library-network-api/ARCHITECTURE_V1.md):
+Against the original V1.1 Checkpoint A definition (historical evidence; the public decisions are documented in the [architecture records](docs/adr/)):
 
 | Criterion | State |
 |---|---|
@@ -156,7 +156,7 @@ Against the [V1.1 Checkpoint A definition](https://github.com/franciscovitar/per
 | Runnable without custom frontend or cloud signup | **Met** |
 | Reproducible in CI | **Met:** [129 tests passed, 0 skipped](https://github.com/franciscovitar/library-network-api/actions/runs/44441208480) on the final PR head with Python 3.13 and PostgreSQL 17 |
 
-Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and original-TP authorship are documented and merged into `main`.** A deliberately failing hosted CI example and integration into the separate professional portfolio are not completed; the local demo is not a production service.
+Checkpoint B items (not claimed): row locking, constraints, idempotency and concurrent/rollback tests exist, pass locally and are wired into CI; the scripted demo exists. **The case study and original-TP authorship are documented and merged into `main`.** A deliberately failing hosted CI example was not run for this checkpoint. The subsequent public portfolio integration is available at the [current case study](https://franvitar.genovasite.com/work/library-network-api); the original local demo is not a production service.
 
 Known limitations: loan ids can have gaps (ids are reserved before validation); CI runs on pull requests only (no push/main trigger, no required-check rule configured); no cancellation or recovery of an abandoned `REQUESTED` loan and no reinstatement of `RETIRED` copies (V1 scope); fixed 14-day loan period, no renewals or fines; unauthenticated local-demo write API; Docker image verified on Docker Desktop for Windows only; `lock_timeout` is set in tests, not enforced in the app engine.
 
@@ -165,8 +165,9 @@ Windows + Docker Desktop crashes on stale sockets: [docs/windows-docker-desktop.
 ## Architecture & boundaries
 
 - [Portfolio technical case study](docs/case-study.md) (CI evidence, original-TP authorship and AI-assisted delivery disclosed)
-- [V1.1 architecture contract (PAS draft PR)](https://github.com/franciscovitar/personal-ai-system/blob/professional/portfolio-library-network-architecture-20261118/AI/projects/library-network-api/ARCHITECTURE_V1.md)
-- [Project tracking and verifiable milestones (Notion)](https://app.notion.com/p/41c086274b6f81528248e6395f51ad66)
+- [Public architecture decisions](docs/adr/)
+- [Public release and isolation evidence](docs/ops/RELEASE_READINESS_20261123.md)
+- [Public portfolio case study](https://franvitar.genovasite.com/work/library-network-api)
 - [Original academic source, preserved separately (tp-DAO)](https://github.com/franciscovitar/tp-DAO)
 
 The application follows the same *domain scenario* as the separately preserved academic TP. Francisco Vitar confirmed that he developed the original individually; its 72 recorded commits and 14 PRs all belong to his GitHub account. This is a separate AI-assisted implementation. A targeted comparison of four code-file pairs found no identical substantive lines; it is not a complete source-provenance audit.

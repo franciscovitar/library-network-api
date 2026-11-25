@@ -1,12 +1,12 @@
 # Case study: reliable interlibrary lending under concurrency
 
-> **Portfolio engineering lab — V1 on `main`.** The original academic implementation was an individual project by Francisco Vitar (owner-confirmed and consistent with repository history). This separate API was developed with AI assistance and is not a production service.
+> **Portfolio engineering lab — original V1 backend evidence, with a later hosted guest demo.** The original academic implementation was an individual project by Francisco Vitar (owner-confirmed and consistent with repository history). This separate API was developed with AI assistance and is not a production service.
 
 ## The problem (30 seconds)
 
 Two library branches share physical books. A member at one branch requests a copy owned by another; staff transfer it out, the member borrows it, and the copy eventually travels home. The tricky part is not listing books. It is keeping **one physical copy from being promised to two members**, including during the return journey and under simultaneous requests.
 
-This project models that problem as a bounded REST API using FastAPI, SQLAlchemy 2, PostgreSQL 17, Alembic and Docker Compose. The real API remains local-only and unauthenticated; it must not be exposed publicly. A [separate interactive frontend](../showcase/) now explains its invariants with a deterministic browser model. That UI is not an HTTP client of the backend and cannot prove PostgreSQL transactions or concurrent locking. The [backend source](../README.md) remains runnable and inspectable locally.
+This project models that problem as a bounded REST API using FastAPI, SQLAlchemy 2, PostgreSQL 17, Alembic and Docker Compose. The original local Compose API is unauthenticated and must not be exposed publicly in that configuration. The later [hosted application](https://library-network-qa-web.onrender.com/) uses a Next.js BFF, signed service tokens and isolated synthetic guest workspaces; see [release evidence](ops/RELEASE_READINESS_20261123.md) and [guest isolation ADR](adr/0006-guest-isolation.md). The independent [historical browser simulator](../showcase/) is not an HTTP client and cannot prove PostgreSQL transactions or concurrent locking. The [backend source](../README.md) remains runnable and inspectable locally.
 
 ## Role, ownership and provenance
 
@@ -100,7 +100,7 @@ Expected final assertion: `DEMO OK: complete loan cycle verified`. Use a **new**
 
 ## Honest trade-offs and next work
 
-- **Local demo, not production:** write endpoints have **no authentication or rate limiting**; never expose them as a public hosted service without a separate security design.
+- **Original local mode, not production:** write endpoints have **no authentication or rate limiting** in the original local configuration; never expose that mode publicly. The separate hosted synthetic guest mode uses the controls and limits described in [release readiness](ops/RELEASE_READINESS_20261123.md).
 - **Deliberately bounded domain:** no cancellation of abandoned requests, no reinstatement of retired copies, fixed 14-day loan period, no renewals or fines.
 - **Verification limits:** successful GitHub Actions CI is linked above; no deliberate hosted CI failure, `actionlint` invocation, load/performance benchmark or production incident evidence. The Swagger specification is tested, but visual review of Swagger UI was not recorded.
 - **CI policy:** runs on pull requests; it is not currently a required protected-branch check.
